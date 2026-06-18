@@ -27,6 +27,9 @@ type LoginInput struct {
 }
 
 func Register(input RegisterInput) (*domain.User, error) {
+	if dao.DB == nil {
+		return nil, errors.New("base de datos no inicializada")
+	}
 	var existing domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
 		return nil, errors.New("el email ya está registrado")
@@ -54,6 +57,9 @@ func Register(input RegisterInput) (*domain.User, error) {
 }
 
 func Login(input LoginInput) (string, error) {
+	if dao.DB == nil {
+		return "", errors.New("base de datos no inicializada")
+	}
 	var user domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

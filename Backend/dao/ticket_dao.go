@@ -31,12 +31,18 @@ func IncrementCupo(tx *gorm.DB, eventID uint) error {
 }
 
 func GetTicketsByUserID(userID uint) ([]models.Ticket, error) {
+	if DB == nil {
+		return nil, errors.New("base de datos no inicializada")
+	}
 	var tickets []models.Ticket
 	err := DB.Preload("Event").Where("user_id = ?", userID).Find(&tickets).Error
 	return tickets, err
 }
 
 func GetTicketByID(id uint) (models.Ticket, error) {
+	if DB == nil {
+		return models.Ticket{}, errors.New("base de datos no inicializada")
+	}
 	var ticket models.Ticket
 	err := DB.First(&ticket, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -54,6 +60,9 @@ func TransferTicketOwner(tx *gorm.DB, ticketID uint, newUserID uint) error {
 }
 
 func GetUserByDNI(dni string) (models.User, error) {
+	if DB == nil {
+		return models.User{}, errors.New("base de datos no inicializada")
+	}
 	var user models.User
 	err := DB.Where("dni = ?", dni).First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {

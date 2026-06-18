@@ -10,6 +10,9 @@ import (
 )
 
 func PurchaseTicket(userID uint, eventID uint) (*domain.Ticket, error) {
+	if dao.DB == nil {
+		return nil, errors.New("base de datos no inicializada")
+	}
 	var ticket *domain.Ticket
 
 	err := dao.DB.Transaction(func(tx *gorm.DB) error {
@@ -36,6 +39,9 @@ func GetMyTickets(userID uint) ([]domain.Ticket, error) {
 }
 
 func CancelTicket(userID uint, ticketID uint) error {
+	if dao.DB == nil {
+		return errors.New("base de datos no inicializada")
+	}
 	ticket, err := dao.GetTicketByID(ticketID)
 	if err != nil {
 		return err
@@ -56,6 +62,9 @@ func CancelTicket(userID uint, ticketID uint) error {
 }
 
 func TransferTicket(ownerID uint, ticketID uint, targetDNI string) error {
+	if dao.DB == nil {
+		return errors.New("base de datos no inicializada")
+	}
 	ticket, err := dao.GetTicketByID(ticketID)
 	if err != nil {
 		return err
