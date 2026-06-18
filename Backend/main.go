@@ -1,9 +1,9 @@
 package main
 
 import (
-	"tu_proyecto/controllers" // Reemplazá por el path real de tu proyecto
-	"tu_proyecto/dao"
-	"tu_proyecto/middlewares" // Acá Juan va a meter el validador de JWT
+	"backend/controllers" // Reemplazá por el path real de tu proyecto
+	"backend/dao"
+	"backend/middlewares" // Acá Juan va a meter el validador de JWT
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,13 +35,13 @@ func main() {
 	api := r.Group("/api")
 	{
 		// --- RUTAS PÚBLICAS ---
-		
+
 		// Autenticación
 		api.POST("/auth/register", controllers.RegisterUser)
 		api.POST("/auth/login", controllers.LoginUser)
 
 		// Eventos (Catálogo y Detalle) [cite: 44, 48]
-		api.GET("/events", controllers.GetEvents)       // Funcionalidad A (Filtros) [cite: 41, 43]
+		api.GET("/events", controllers.GetEvents)        // Funcionalidad A (Filtros) [cite: 41, 43]
 		api.GET("/events/:id", controllers.GetEventByID) // Funcionalidad B [cite: 45]
 
 		// --- RUTAS PROTEGIDAS (Requieren que Juan valide el Token JWT) ---
@@ -50,9 +50,9 @@ func main() {
 		protected.Use(middlewares.AuthMiddleware()) // <--- Middleware que va a programar Juan
 		{
 			// Tickets / Entradas
-			protected.POST("/tickets/purchase", controllers.PurchaseTicket)   // Funcionalidad C [cite: 49]
-			protected.GET("/tickets/my-tickets", controllers.GetMyTickets)    // Funcionalidad D [cite: 53]
-			protected.POST("/tickets/:id/cancel", controllers.CancelTicket)   // Funcionalidad E [cite: 61]
+			protected.POST("/tickets/purchase", controllers.PurchaseTicket)     // Funcionalidad C [cite: 49]
+			protected.GET("/tickets/my-tickets", controllers.GetMyTickets)      // Funcionalidad D [cite: 53]
+			protected.POST("/tickets/:id/cancel", controllers.CancelTicket)     // Funcionalidad E [cite: 61]
 			protected.POST("/tickets/:id/transfer", controllers.TransferTicket) // Funcionalidad F [cite: 63]
 		}
 	}
