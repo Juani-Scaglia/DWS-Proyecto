@@ -1,9 +1,9 @@
 package main
 
 import (
-	"tu_proyecto/controllers" // Reemplazá por el path real de tu proyecto
-	"tu_proyecto/dao"
-	"tu_proyecto/middlewares" // Acá Juan va a meter el validador de JWT
+	"backend/controllers" // Reemplazá por el path real de tu proyecto
+	"backend/dao"
+	"backend/middlewares" // Acá Juan va a meter el validador de JWT
 
 	"github.com/gin-gonic/gin"
 )
