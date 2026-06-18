@@ -8,9 +8,11 @@ import (
 
 // GetAllEvents trae los eventos, opcionalmente filtrados por categoría (Requisito Regularidad)
 func GetAllEvents(category string) ([]models.Event, error) {
+	if DB == nil {
+		return nil, errors.New("base de datos no inicializada")
+	}
 	var events []models.Event
-	
-	// Si el frontend manda una categoría, filtramos en MySQL
+
 	if category != "" {
 		result := DB.Where("category = ?", category).Find(&events)
 		if result.Error != nil {
@@ -29,6 +31,9 @@ func GetAllEvents(category string) ([]models.Event, error) {
 
 // GetEventByID busca un evento puntual a partir de su ID único
 func GetEventByID(id uint) (models.Event, error) {
+	if DB == nil {
+		return models.Event{}, errors.New("base de datos no inicializada")
+	}
 	var event models.Event
 	result := DB.First(&event, id)
 	if result.Error != nil {
