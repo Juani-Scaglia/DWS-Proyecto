@@ -1,11 +1,19 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8080";
+const API_URL = "http://localhost:8080/api";
 
 export const getEvents = async () => {
-  return axios.get(`${API_URL}/events`);
+  const response = await axios.get(
+    `${API_URL}/events`
+  );
+
+  return response.data;
 };
 
 export const getEventById = async (id) => {
-  return axios.get(`${API_URL}/events/${id}`);
+  const response = await axios.get(
+    `${API_URL}/events/${id}`
+  );
+
+  return response.data;
 };

@@ -1,17 +1,26 @@
 import { useState } from "react";
+import { login } from "../services/authService";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // Simulación JWT
-    localStorage.setItem("token", "jwt-prueba");
+  try {
+    const data = await login(email, password);
+
+    localStorage.setItem(
+      "token",
+      data.token
+    );
 
     alert("Login exitoso");
-  };
+  } catch (error) {
+    alert("Credenciales incorrectas");
+  }
+};
 
   return (
     <div>
@@ -45,3 +54,4 @@ function Login() {
 }
 
 export default Login;
+

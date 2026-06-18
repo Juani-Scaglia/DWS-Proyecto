@@ -1,16 +1,30 @@
 import { useState } from "react";
+import { register } from "../services/authService";
 
 function Register() {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
+  const [dni, setDNI] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    await register({
+      nombre,
+      apellido,
+      email,
+      password,
+      dni
+    });
 
     alert("Usuario registrado");
-  };
+  } catch (error) {
+    alert("Error al registrar usuario");
+  }
+};
 
   return (
     <div>
@@ -29,6 +43,14 @@ function Register() {
           placeholder="Apellido"
           value={apellido}
           onChange={(e) => setApellido(e.target.value)}
+        />
+
+        <br />
+
+        <input
+          placeholder="DNI"
+          value={dni}
+          onChange={(e) => setDNI(e.target.value)}
         />
 
         <br />
