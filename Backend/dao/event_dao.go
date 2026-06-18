@@ -1,7 +1,7 @@
 package dao
 
 import (
-	"backend/domain"
+	"backend/domain/models"
 	"errors"
 
 	"gorm.io/gorm"
