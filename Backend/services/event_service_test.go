@@ -3,6 +3,7 @@ package services
 import (
 	"os"
 	"testing"
+	"time"
 
 	"backend/dao"
 	domain "backend/domain/models"
@@ -134,7 +135,7 @@ func TestLogin_CredencialesInvalidas(t *testing.T) {
 		Email:    "noexiste@test.com",
 		Password: "password123",
 	}
-	_, err := Login(input)
+	_, _, err := Login(input)
 	if err == nil {
 		t.Error("Se esperaba error con email inexistente")
 	}
@@ -227,5 +228,83 @@ func TestCancelTicket_Exitoso(t *testing.T) {
 	err := CancelTicket(u.ID, ticket.ID)
 	if err != nil {
 		t.Fatalf("CancelTicket falló: %v", err)
+	}
+}
+
+// ── Admin — Eventos ───────────────────────────────────────────────
+
+func TestCreateEvent_Exitoso(t *testing.T) {
+	input := EventInput{
+		Titulo:     "Evento Admin",
+		Categoria:  "Rock",
+		Lugar:      "Córdoba",
+		Precio:     100,
+		CupoMaximo: 50,
+		Fecha:      time.Now().Add(24 * time.Hour),
+	}
+	event, err := CreateEvent(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.CupoDispon != 50 {
+		t.Errorf("cupo disponible debe igualar cupo máximo al crear: obtenido %d", event.CupoDispon)
+	}
+}
+
+func TestUpdateEvent_Exitoso(t *testing.T) {
+	e := seedEvent(dao.DB)
+	input := EventInput{
+		Titulo:     "Modificado",
+		Categoria:  "Pop",
+		Lugar:      "Rosario",
+		Precio:     200,
+		CupoMaximo: 30,
+		Fecha:      time.Now().Add(48 * time.Hour),
+	}
+	updated, err := UpdateEvent(e.ID, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Titulo != "Modificado" {
+		t.Errorf("título no actualizado: obtenido %s", updated.Titulo)
+	}
+}
+
+func TestUpdateEvent_Inexistente(t *testing.T) {
+	input := EventInput{
+		Titulo:     "X",
+		Categoria:  "X",
+		Lugar:      "X",
+		Precio:     1,
+		CupoMaximo: 1,
+		Fecha:      time.Now().Add(24 * time.Hour),
+	}
+	_, err := UpdateEvent(99999, input)
+	if err == nil {
+		t.Error("se esperaba error para evento inexistente")
+	}
+}
+
+func TestDeleteEvent_Exitoso(t *testing.T) {
+	e := seedEvent(dao.DB)
+	if err := DeleteEvent(e.ID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDeleteEvent_Inexistente(t *testing.T) {
+	if err := DeleteEvent(99999); err == nil {
+		t.Error("se esperaba error para evento inexistente")
+	}
+}
+
+func TestTransferTicket_AutoTransferencia(t *testing.T) {
+	e := seedEvent(dao.DB)
+	u := seedUser(dao.DB, "autotransfer@test.com", "12312312")
+	ticket, _ := PurchaseTicket(u.ID, e.ID)
+
+	err := TransferTicket(u.ID, ticket.ID, u.DNI)
+	if err == nil {
+		t.Error("no se debería poder transferir un ticket a uno mismo")
 	}
 }

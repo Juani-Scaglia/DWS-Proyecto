@@ -57,23 +57,27 @@ func Register(input RegisterInput) (*domain.User, error) {
 	return &user, nil
 }
 
-func Login(input LoginInput) (string, error) {
+func Login(input LoginInput) (string, *domain.User, error) {
 	if dao.DB == nil {
-		return "", errors.New("base de datos no inicializada")
+		return "", nil, errors.New("base de datos no inicializada")
 	}
 	var user domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", errors.New("credenciales inválidas")
+			return "", nil, errors.New("credenciales inválidas")
 		}
-		return "", err
+		return "", nil, err
 	}
 
 	if user.Password != hashPassword(input.Password) {
-		return "", errors.New("credenciales inválidas")
+		return "", nil, errors.New("credenciales inválidas")
 	}
 
-	return generateJWT(user)
+	token, err := generateJWT(user)
+	if err != nil {
+		return "", nil, err
+	}
+	return token, &user, nil
 }
 
 func generateJWT(user domain.User) (string, error) {
@@ -86,6 +90,7 @@ func generateJWT(user domain.User) (string, error) {
 		"user_id": user.ID,
 		"email":   user.Email,
 		"rol":     user.Rol,
+		"dni":     user.DNI,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	}
 

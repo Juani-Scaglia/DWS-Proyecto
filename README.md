@@ -144,21 +144,17 @@ npm run lint     # Análisis estático con ESLint
 
 ### Backend
 
+Correr desde la carpeta `Backend/`:
+
 ```bash
 cd Backend
-go test ./...
-```
-
-Para ver cobertura:
-
-```bash
-go test ./... -cover
+go test ./middlewares/... ./services/... -v -cover
 ```
 
 Para un reporte detallado por función:
 
 ```bash
-go test ./... -coverprofile=coverage.out
+go test ./middlewares/... ./services/... -coverprofile=coverage.out
 go tool cover -func=coverage.out
 ```
 

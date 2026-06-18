@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const routeEventByID = "/events/:id"
+
 func main() {
 	// 1. Inicializar la Base de Datos (GORM)
 	dao.InitDB()
@@ -36,18 +38,28 @@ func main() {
 	{
 		// --- RUTAS PÚBLICAS (Eventos y Auth) ---
 		api.GET("/events", controllers.GetEvents)        
-		api.GET("/events/:id", controllers.GetEventByID) 
+		api.GET(routeEventByID, controllers.GetEventByID) 
 		api.POST("/auth/register", controllers.RegisterUser)
 		api.POST("/auth/login", controllers.LoginUser)
 
 		// --- RUTAS PROTEGIDAS (Requieren Token JWT) ---
 		protected := api.Group("/")
-		protected.Use(middlewares.AuthMiddleware()) 
+		protected.Use(middlewares.AuthMiddleware())
 		{
-			protected.POST("/tickets/purchase", controllers.PurchaseTicket)     
-			protected.GET("/tickets/my-tickets", controllers.GetMyTickets)      
-			protected.POST("/tickets/:id/cancel", controllers.CancelTicket)     
-			protected.POST("/tickets/:id/transfer", controllers.TransferTicket) 
+			protected.POST("/tickets/purchase", controllers.PurchaseTicket)
+			protected.GET("/tickets/my-tickets", controllers.GetMyTickets)
+			protected.POST("/tickets/:id/cancel", controllers.CancelTicket)
+			protected.POST("/tickets/:id/transfer", controllers.TransferTicket)
+		}
+
+		// --- RUTAS ADMIN (Requieren Token JWT + rol admin) ---
+		admin := api.Group("/admin")
+		admin.Use(middlewares.AuthMiddleware())
+		admin.Use(middlewares.AdminMiddleware())
+		{
+			admin.POST("/events", controllers.CreateEventAdmin)
+			admin.PUT(routeEventByID, controllers.UpdateEventAdmin)
+			admin.DELETE(routeEventByID, controllers.DeleteEventAdmin)
 		}
 	}
 

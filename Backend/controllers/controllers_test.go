@@ -48,6 +48,13 @@ func TestMain(m *testing.M) {
 	protected.POST("/tickets/:id/cancel", controllers.CancelTicket)
 	protected.POST("/tickets/:id/transfer", controllers.TransferTicket)
 
+	admin := api.Group("/admin")
+	admin.Use(middlewares.AuthMiddleware())
+	admin.Use(middlewares.AdminMiddleware())
+	admin.POST("/events", controllers.CreateEventAdmin)
+	admin.PUT("/events/:id", controllers.UpdateEventAdmin)
+	admin.DELETE("/events/:id", controllers.DeleteEventAdmin)
+
 	os.Exit(m.Run())
 }
 
@@ -71,6 +78,19 @@ func crearUsuario(email, dni string) domain.User {
 	}
 	dao.DB.Create(&u)
 	return u
+}
+
+func tokenParaAdmin() string {
+	secret := os.Getenv("JWT_SECRET")
+	claims := jwt.MapClaims{
+		"user_id": float64(9999),
+		"email":   "admin@test.com",
+		"rol":     "admin",
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, _ := token.SignedString([]byte(secret))
+	return signed
 }
 
 func crearEvento(cupo int) domain.Event {
@@ -269,6 +289,85 @@ func TestCancelTicket_NoAutorizado(t *testing.T) {
 	testRouter.ServeHTTP(w, req)
 	if w.Code != http.StatusForbidden {
 		t.Errorf("esperado 403 no autorizado, obtenido %d", w.Code)
+	}
+}
+
+// ── Admin endpoints ───────────────────────────────────────────────
+
+func TestCreateEventAdmin_SinRolAdmin(t *testing.T) {
+	u := crearUsuario("clienteadmin@ctrl.test", "20212223")
+	token := tokenParaUsuario(u.ID)
+	body := `{"titulo":"T","categoria":"C","lugar":"L","precio":100,"cupo_maximo":10,"fecha":"2027-01-01T20:00:00Z"}`
+	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Errorf("esperado 403, obtenido %d", w.Code)
+	}
+}
+
+func TestCreateEventAdmin_InputInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{}` // faltan campos requeridos
+	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestCreateEventAdmin_Exitoso(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{"titulo":"Evento Admin","categoria":"Rock","lugar":"Córdoba","precio":150,"cupo_maximo":100,"fecha":"2027-06-01T20:00:00Z"}`
+	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Errorf("esperado 201, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestUpdateEventAdmin_Exitoso(t *testing.T) {
+	token := tokenParaAdmin()
+	// crear evento primero
+	createBody := `{"titulo":"Para Editar","categoria":"Jazz","lugar":"Mendoza","precio":80,"cupo_maximo":20,"fecha":"2027-07-01T20:00:00Z"}`
+	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(createBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+
+	var created map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &created)
+	id := fmt.Sprintf("%v", created["id"])
+
+	// actualizar
+	updateBody := `{"titulo":"Editado","categoria":"Jazz","lugar":"Mendoza","precio":90,"cupo_maximo":20,"fecha":"2027-07-01T20:00:00Z"}`
+	req2, _ := http.NewRequest("PUT", "/api/admin/events/"+id, strings.NewReader(updateBody))
+	req2.Header.Set("Content-Type", "application/json")
+	req2.Header.Set("Authorization", "Bearer "+token)
+	w2 := httptest.NewRecorder()
+	testRouter.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d — body: %s", w2.Code, w2.Body.String())
+	}
+}
+
+func TestDeleteEventAdmin_Inexistente(t *testing.T) {
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("DELETE", "/api/admin/events/999999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d", w.Code)
 	}
 }
 

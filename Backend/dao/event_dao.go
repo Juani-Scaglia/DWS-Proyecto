@@ -7,10 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// GetAllEvents trae los eventos, opcionalmente filtrados por categoría (Requisito Regularidad)
+const errDBNula = "base de datos no inicializada"
+
 func GetAllEvents(category string) ([]models.Event, error) {
 	if DB == nil {
-		return nil, errors.New("base de datos no inicializada")
+		return nil, errors.New(errDBNula)
 	}
 	var events []models.Event
 
@@ -22,7 +23,6 @@ func GetAllEvents(category string) ([]models.Event, error) {
 		return events, nil
 	}
 
-	// Si no manda categoría, trae todos de forma general
 	result := DB.Find(&events)
 	if result.Error != nil {
 		return nil, result.Error
@@ -30,10 +30,9 @@ func GetAllEvents(category string) ([]models.Event, error) {
 	return events, nil
 }
 
-// GetEventByID busca un evento puntual a partir de su ID único
 func GetEventByID(id uint) (models.Event, error) {
 	if DB == nil {
-		return models.Event{}, errors.New("base de datos no inicializada")
+		return models.Event{}, errors.New(errDBNula)
 	}
 	var event models.Event
 	result := DB.First(&event, id)
@@ -44,4 +43,19 @@ func GetEventByID(id uint) (models.Event, error) {
 		return event, result.Error
 	}
 	return event, nil
+}
+
+func CreateEvent(event *models.Event) error {
+	if DB == nil {
+		return errors.New(errDBNula)
+	}
+	return DB.Create(event).Error
+}
+
+func UpdateEvent(id uint, fields map[string]interface{}) error {
+	return DB.Model(&models.Event{}).Where("id = ?", id).Updates(fields).Error
+}
+
+func DeleteEvent(id uint) error {
+	return DB.Delete(&models.Event{}, id).Error
 }

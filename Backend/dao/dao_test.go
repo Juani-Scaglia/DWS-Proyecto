@@ -40,6 +40,26 @@ func seedUsuario(email, dni string) models.User {
 
 // ── Eventos ───────────────────────────────────────────────────────
 
+func TestGetAllEvents_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetAllEvents("")
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestGetEventByID_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetEventByID(1)
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
 func TestGetAllEvents_SinFiltro(t *testing.T) {
 	seedEvento(10)
 	events, err := GetAllEvents("")
@@ -232,5 +252,43 @@ func TestGetUserByDNI_Inexistente(t *testing.T) {
 	}
 	if err.Error() != "usuario con ese DNI no encontrado" {
 		t.Errorf("mensaje de error incorrecto: %s", err.Error())
+	}
+}
+
+func TestGetTicketsByUserID_ConTickets(t *testing.T) {
+	e := seedEvento(10)
+	u := seedUsuario("contickets@dao.test", "80080080")
+	ticket := &models.Ticket{UserID: u.ID, EventID: e.ID, Estado: "activo"}
+	DB.Create(ticket)
+
+	tickets, err := GetTicketsByUserID(u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tickets) == 0 {
+		t.Error("se esperaba al menos un ticket para el usuario")
+	}
+}
+
+func TestUpdateEvent(t *testing.T) {
+	e := seedEvento(10)
+	fields := map[string]interface{}{"titulo": "Actualizado", "precio": 999.0}
+	if err := UpdateEvent(e.ID, fields); err != nil {
+		t.Fatal(err)
+	}
+	updated, _ := GetEventByID(e.ID)
+	if updated.Titulo != "Actualizado" {
+		t.Errorf("título no actualizado: obtenido %s", updated.Titulo)
+	}
+}
+
+func TestDeleteEvent(t *testing.T) {
+	e := seedEvento(5)
+	if err := DeleteEvent(e.ID); err != nil {
+		t.Fatal(err)
+	}
+	_, err := GetEventByID(e.ID)
+	if err == nil {
+		t.Error("el evento debería haberse eliminado")
 	}
 }
