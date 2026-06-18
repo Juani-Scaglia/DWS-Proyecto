@@ -11,7 +11,8 @@ type User struct {
 	Password  string    `gorm:"type:varchar(255);not null" json:"-"`
 	Nombre    string    `gorm:"type:varchar(100);not null" json:"nombre"`
 	Apellido  string    `gorm:"type:varchar(100);not null" json:"apellido"`
-	Rol       string    `gorm:"type:varchar(50);not null;default:'cliente'" json:"rol"` 
+	Rol       string    `gorm:"type:varchar(50);not null;default:'cliente'" json:"rol"`
+	DNI       string    `gorm:"type:varchar(20);unique;not null" json:"dni"`
 	CreatedAt time.Time `json:"created_at"`
 	Tickets   []Ticket  `gorm:"foreignKey:UserID" json:"tickets,omitempty"`
 }
