@@ -39,7 +39,7 @@ func seedEvent(db *gorm.DB) domain.Event {
 func seedUser(db *gorm.DB, email, dni string) domain.User {
 	u := domain.User{
 		Email:    email,
-		Password: "$2a$10$testhashedpassword1234567890ab",
+		Password: hashPassword("password123"),
 		Nombre:   "Test",
 		Apellido: "User",
 		Rol:      "cliente",

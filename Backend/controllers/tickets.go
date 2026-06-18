@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"backend/services"
+	"backend/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,21 +23,21 @@ func PurchaseTicket(c *gin.Context) {
 
 	var input PurchaseInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	ticket, err := services.PurchaseTicket(userID, input.EventID)
 	if err != nil {
 		if err.Error() == "sin cupo disponible" {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			utils.ErrorResponse(c, http.StatusConflict, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, ticket)
+	utils.SuccessResponse(c, http.StatusCreated, ticket)
 }
 
 func GetMyTickets(c *gin.Context) {
@@ -44,11 +45,11 @@ func GetMyTickets(c *gin.Context) {
 
 	tickets, err := services.GetMyTickets(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, tickets)
+	utils.SuccessResponse(c, http.StatusOK, tickets)
 }
 
 func CancelTicket(c *gin.Context) {
@@ -56,23 +57,23 @@ func CancelTicket(c *gin.Context) {
 
 	ticketID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de ticket inválido"})
+		utils.ErrorResponse(c, http.StatusBadRequest, "ID de ticket inválido")
 		return
 	}
 
 	if err := services.CancelTicket(userID, uint(ticketID)); err != nil {
 		switch err.Error() {
 		case "no autorizado":
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			utils.ErrorResponse(c, http.StatusForbidden, err.Error())
 		case "ticket no encontrado":
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error())
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "ticket cancelado"})
+	utils.SuccessResponse(c, http.StatusOK, gin.H{"message": "ticket cancelado"})
 }
 
 func TransferTicket(c *gin.Context) {
@@ -80,27 +81,27 @@ func TransferTicket(c *gin.Context) {
 
 	ticketID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID de ticket inválido"})
+		utils.ErrorResponse(c, http.StatusBadRequest, "ID de ticket inválido")
 		return
 	}
 
 	var input TransferInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := services.TransferTicket(userID, uint(ticketID), input.DNI); err != nil {
 		switch err.Error() {
 		case "no autorizado":
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			utils.ErrorResponse(c, http.StatusForbidden, err.Error())
 		case "ticket no encontrado", "usuario con ese DNI no encontrado":
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error())
 		default:
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "ticket transferido"})
+	utils.SuccessResponse(c, http.StatusOK, gin.H{"message": "ticket transferido"})
 }

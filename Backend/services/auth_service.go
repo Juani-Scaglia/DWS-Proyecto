@@ -1,6 +1,8 @@
 package services
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"os"
 	"time"
@@ -9,7 +11,6 @@ import (
 	domain "backend/domain/models"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -26,6 +27,11 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
+func hashPassword(password string) string {
+	sum := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(sum[:])
+}
+
 func Register(input RegisterInput) (*domain.User, error) {
 	if dao.DB == nil {
 		return nil, errors.New("base de datos no inicializada")
@@ -35,14 +41,9 @@ func Register(input RegisterInput) (*domain.User, error) {
 		return nil, errors.New("el email ya está registrado")
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
-
 	user := domain.User{
 		Email:    input.Email,
-		Password: string(hashed),
+		Password: hashPassword(input.Password),
 		Nombre:   input.Nombre,
 		Apellido: input.Apellido,
 		Rol:      "cliente",
@@ -68,7 +69,7 @@ func Login(input LoginInput) (string, error) {
 		return "", err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+	if user.Password != hashPassword(input.Password) {
 		return "", errors.New("credenciales inválidas")
 	}
 
