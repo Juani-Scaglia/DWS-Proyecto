@@ -1,11 +1,18 @@
 package main
 
 import (
+<<<<<<< HEAD
 	"log"
 
 	"backend/controllers"
 	"backend/dao"
 	"backend/middlewares"
+=======
+	"backend/controllers"
+	"backend/dao"
+
+	// "backend/middlewares" // Comentado temporalmente hasta que Juan lo cree
+>>>>>>> feature/eventos
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +24,11 @@ func main() {
 	// 2. Crear el servidor/enrutador de Gin
 	r := gin.Default()
 
+<<<<<<< HEAD
 	// 3. Configurar Middleware de CORS para conectar con el React de Simon
+=======
+	// 3. Configurar Middleware de CORS
+>>>>>>> feature/eventos
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -36,6 +47,7 @@ func main() {
 	// ==========================================
 	api := r.Group("/api")
 	{
+<<<<<<< HEAD
 		// --- RUTAS PÚBLICAS ---
 		
 		// Autenticación [cite: 38]
@@ -56,6 +68,28 @@ func main() {
 			protected.POST("/tickets/:id/cancel", controllers.CancelTicket)     // Funcionalidad E [cite: 61]
 			protected.POST("/tickets/:id/transfer", controllers.TransferTicket) // Funcionalidad F [cite: 63]
 		}
+=======
+		// --- RUTAS PÚBLICAS DE EVENTOS (¡TUS ENDPOINTS!) ---
+		api.GET("/events", controllers.GetEvents)
+		api.GET("/events/:id", controllers.GetEventByID)
+
+		// --- COMENTADO TEMPORALMENTE PARA QUE PUEDAS COMPILAR Y PROBAR ---
+		/*
+			// Autenticación
+			api.POST("/auth/register", controllers.RegisterUser)
+			api.POST("/auth/login", controllers.LoginUser)
+
+			// Rutas protegidas
+			protected := api.Group("/")
+			protected.Use(middlewares.AuthMiddleware())
+			{
+				protected.POST("/tickets/purchase", controllers.PurchaseTicket)
+				protected.GET("/tickets/my-tickets", controllers.GetMyTickets)
+				protected.POST("/tickets/:id/cancel", controllers.CancelTicket)
+				protected.POST("/tickets/:id/transfer", controllers.TransferTicket)
+			}
+		*/
+>>>>>>> feature/eventos
 	}
 
 	// 5. Correr el servidor en el puerto 8080
