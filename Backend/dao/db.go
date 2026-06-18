@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"DWS-Proyecto/Backend/domain" // Importa tu models.go desde la carpeta domain [cite: 30]
+	domain "backend/domain/models"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
