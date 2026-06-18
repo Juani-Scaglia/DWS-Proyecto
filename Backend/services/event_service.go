@@ -2,13 +2,14 @@ package services
 
 import (
 	"backend/dao"
-	domain "backend/domain/models"
+	"backend/domain/models"
 )
 
-func GetAllEvents() ([]domain.Event, error) {
-	return dao.GetAllEvents()
+// GetAllEvents pasa el filtro de categoría hacia el DAO
+func GetAllEvents(category string) ([]models.Event, error) {
+	return dao.GetAllEvents(category)
 }
 
-func GetEventByID(id uint) (domain.Event, error) {
+func GetEventByID(id uint) (models.Event, error) {
 	return dao.GetEventByID(id)
 }
