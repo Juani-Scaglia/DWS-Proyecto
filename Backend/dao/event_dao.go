@@ -3,6 +3,7 @@ package dao
 import (
 	"backend/domain/models"
 	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -14,7 +15,7 @@ func GetAllEvents(category string) ([]models.Event, error) {
 	var events []models.Event
 
 	if category != "" {
-		result := DB.Where("category = ?", category).Find(&events)
+		result := DB.Where("categoria = ?", category).Find(&events)
 		if result.Error != nil {
 			return nil, result.Error
 		}

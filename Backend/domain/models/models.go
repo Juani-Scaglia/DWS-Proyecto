@@ -30,7 +30,7 @@ type Event struct {
 	Lugar       string    `gorm:"type:varchar(150);not null" json:"lugar"`
 	Precio      float64   `gorm:"type:decimal(10,2);not null" json:"precio"`
 	CupoMaximo  int       `gorm:"not null" json:"cupo_maximo"`
-	CupoDispon  int       `gorm:"not null" json:"cupo_disponible"`
+	CupoDispon  int       `gorm:"column:cupo_disponible;not null" json:"cupo_disponible"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
