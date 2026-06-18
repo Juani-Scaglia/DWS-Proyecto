@@ -2,7 +2,7 @@ package services
 
 import (
 	"backend/dao"
-	"backend/domain/models"
+	domain "backend/domain/models"
 )
 
 func GetAllEvents() ([]domain.Event, error) {
