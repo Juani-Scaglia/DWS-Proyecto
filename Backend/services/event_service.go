@@ -4,7 +4,8 @@ import (
 	"time"
 
 	"backend/dao"
-	"backend/domain/models"
+	domain "backend/domain/models"
+	"gorm.io/gorm"
 )
 
 type EventInput struct {
@@ -17,16 +18,16 @@ type EventInput struct {
 	CupoMaximo  int       `json:"cupo_maximo" binding:"required,gt=0"`
 }
 
-func GetAllEvents(category string) ([]models.Event, error) {
+func GetAllEvents(category string) ([]domain.Event, error) {
 	return dao.GetAllEvents(category)
 }
 
-func GetEventByID(id uint) (models.Event, error) {
+func GetEventByID(id uint) (domain.Event, error) {
 	return dao.GetEventByID(id)
 }
 
-func CreateEvent(input EventInput) (*models.Event, error) {
-	event := &models.Event{
+func CreateEvent(input EventInput) (*domain.Event, error) {
+	event := &domain.Event{
 		Titulo:      input.Titulo,
 		Descripcion: input.Descripcion,
 		Categoria:   input.Categoria,
@@ -42,7 +43,7 @@ func CreateEvent(input EventInput) (*models.Event, error) {
 	return event, nil
 }
 
-func UpdateEvent(id uint, input EventInput) (*models.Event, error) {
+func UpdateEvent(id uint, input EventInput) (*domain.Event, error) {
 	if _, err := dao.GetEventByID(id); err != nil {
 		return nil, err
 	}
@@ -66,5 +67,10 @@ func DeleteEvent(id uint) error {
 	if _, err := dao.GetEventByID(id); err != nil {
 		return err
 	}
-	return dao.DeleteEvent(id)
+	return dao.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("event_id = ?", id).Delete(&domain.Ticket{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&domain.Event{}, id).Error
+	})
 }

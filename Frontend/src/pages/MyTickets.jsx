@@ -12,9 +12,10 @@ function MyTickets({ user }) {
 
   useEffect(() => {
     if (!user) { navigate("/login"); return; }
+    setPageMsg({ type: "", text: "" });
     setLoading(true);
     getMyTickets()
-      .then((res) => { setTickets(res.data); setError(""); })
+      .then((res) => { setTickets(res.data.filter((t) => t.estado === "activo")); setError(""); })
       .catch(() => setError("No se pudieron cargar las entradas"))
       .finally(() => setLoading(false));
   }, [user]);

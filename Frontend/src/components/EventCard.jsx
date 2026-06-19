@@ -1,6 +1,12 @@
 import { Link } from "react-router-dom";
 
-const CAT_CLASS = { Recitales: "badge--recitales", Teatro: "badge--teatro", Deportes: "badge--deportes" };
+const CAT_CLASS = {
+  Recitales: "badge--recitales",
+  Teatro:    "badge--teatro",
+  Deportes:  "badge--deportes",
+  Cine:      "badge--cine",
+  Otra:      "badge--otra",
+};
 
 function EventCard({ event }) {
   const pct      = event.cupo_maximo > 0
@@ -19,7 +25,7 @@ function EventCard({ event }) {
   });
 
   return (
-    <div className="event-card">
+    <Link to={`/event/${event.id}`} className="event-card">
       <div className="event-card__header">
         <span className={`badge ${CAT_CLASS[event.categoria] ?? ""}`}>
           {event.categoria}
@@ -44,11 +50,9 @@ function EventCard({ event }) {
         <span className="event-card__price">
           ${Number(event.precio).toLocaleString("es-AR")}
         </span>
-        <Link to={`/event/${event.id}`} className="btn btn--primary btn--sm">
-          Ver detalle
-        </Link>
+        <span className="btn btn--primary btn--sm">Ver detalle</span>
       </div>
-    </div>
+    </Link>
   );
 }
 

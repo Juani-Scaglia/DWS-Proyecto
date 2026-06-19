@@ -23,7 +23,7 @@ function Navbar({ user, onLogout }) {
             {user.rol === "admin" && (
               <Link to="/admin" className="navbar__link navbar__link--admin">Admin</Link>
             )}
-            <div className="navbar__user">{user.email}</div>
+            <div className="navbar__user">{user.nombre} {user.apellido}</div>
             <button className="btn btn--ghost" onClick={handleLogout}>Salir</button>
           </>
         ) : (

@@ -7,6 +7,8 @@ const CATEGORIAS = [
   { value: "Recitales", label: "Recitales" },
   { value: "Teatro",    label: "Teatro" },
   { value: "Deportes",  label: "Deportes" },
+  { value: "Cine",      label: "Cine" },
+  { value: "Otra",      label: "Otra" },
 ];
 
 function Home() {

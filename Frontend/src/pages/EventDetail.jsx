@@ -1,19 +1,26 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getEventById } from "../services/eventService";
-import { purchaseTicket } from "../services/ticketService";
+import { purchaseTicket, getMyTickets } from "../services/ticketService";
 
-const CAT_CLASS = { Recitales: "badge--recitales", Teatro: "badge--teatro", Deportes: "badge--deportes" };
+const CAT_CLASS = {
+  Recitales: "badge--recitales",
+  Teatro:    "badge--teatro",
+  Deportes:  "badge--deportes",
+  Cine:      "badge--cine",
+  Otra:      "badge--otra",
+};
 
 function EventDetail({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [event, setEvent]     = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [buying, setBuying]   = useState(false);
-  const [cantidad, setCantidad] = useState(1);
-  const [error, setError]     = useState("");
-  const [success, setSuccess] = useState("");
+  const [event, setEvent]               = useState(null);
+  const [loading, setLoading]           = useState(true);
+  const [buying, setBuying]             = useState(false);
+  const [cantidad, setCantidad]         = useState(1);
+  const [userTicketCount, setUserTicketCount] = useState(0);
+  const [error, setError]               = useState("");
+  const [success, setSuccess]           = useState("");
 
   useEffect(() => {
     getEventById(id)
@@ -21,6 +28,18 @@ function EventDetail({ user }) {
       .catch(() => setError("Evento no encontrado"))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!user) return;
+    getMyTickets()
+      .then((res) => {
+        const count = res.data.filter(
+          (t) => t.event_id === parseInt(id) && t.estado === "activo"
+        ).length;
+        setUserTicketCount(count);
+      })
+      .catch(() => {});
+  }, [id, user]);
 
   const handleComprar = async () => {
     if (!user) { navigate("/login"); return; }
@@ -36,6 +55,7 @@ function EventDetail({ user }) {
         : "Entrada comprada. Podés verla en Mis Entradas.";
       setSuccess(msg);
       setEvent((prev) => ({ ...prev, cupo_disponible: prev.cupo_disponible - cantidad }));
+      setUserTicketCount((prev) => prev + cantidad);
       setCantidad(1);
     } catch (err) {
       setError(err.response?.data?.error || "Error al comprar la entrada");
@@ -54,9 +74,11 @@ function EventDetail({ user }) {
 
   if (error && !event) {
     return (
-      <div className="event-detail">
-        <div className="alert alert--error">{error}</div>
-        <Link to="/" className="btn btn--secondary">← Volver a eventos</Link>
+      <div className="event-detail-page">
+        <div className="event-detail">
+          <div className="alert alert--error">{error}</div>
+          <Link to="/" className="btn btn--secondary">← Volver a eventos</Link>
+        </div>
       </div>
     );
   }
@@ -69,20 +91,24 @@ function EventDetail({ user }) {
     hour: "2-digit", minute: "2-digit",
   });
 
-  const soldOut     = event.cupo_disponible === 0;
-  const maxCantidad = Math.min(10, event.cupo_disponible);
-  const total       = Number(event.precio) * cantidad;
+  const soldOut        = event.cupo_disponible === 0;
+  const atLimit        = user && userTicketCount >= 10;
+  const remainingSlots = Math.max(0, 10 - userTicketCount);
+  const maxCantidad    = Math.min(10, event.cupo_disponible, remainingSlots);
+  const total          = Number(event.precio) * cantidad;
 
   let btnLabel = cantidad > 1 ? `Comprar ${cantidad} entradas` : "Comprar entrada";
   if (buying)        btnLabel = "Procesando...";
+  else if (atLimit)  btnLabel = "Límite alcanzado";
   else if (soldOut)  btnLabel = "Sin cupo disponible";
   else if (!user)    btnLabel = "Iniciá sesión para comprar";
 
   return (
-    <div className="event-detail">
-      <Link to="/" className="back-link">← Volver a eventos</Link>
+    <div className="event-detail-page" onClick={() => navigate("/")}>
+      <div className="event-detail">
+        <Link to="/" className="back-link" onClick={(e) => e.stopPropagation()}>← Volver a eventos</Link>
 
-      <div className="event-detail__card">
+        <div className="event-detail__card" onClick={(e) => e.stopPropagation()}>
         <div className="event-detail__banner">
           <span className={`badge ${CAT_CLASS[event.categoria] ?? ""}`}>
             {event.categoria}
@@ -118,6 +144,11 @@ function EventDetail({ user }) {
 
           {success && <div className="alert alert--success">{success}</div>}
           {error   && <div className="alert alert--error">{error}</div>}
+          {atLimit && !success && (
+            <div className="alert alert--warning">
+              Alcanzaste el límite de 10 entradas para este evento.
+            </div>
+          )}
 
           <div className="purchase-row">
             <div>
@@ -126,7 +157,7 @@ function EventDetail({ user }) {
                 ${Number(event.precio).toLocaleString("es-AR")}
               </p>
 
-              {!soldOut && user && (
+              {!soldOut && !atLimit && user && (
                 <div className="qty-row">
                   <span className="qty-label">Cantidad</span>
                   <div className="qty-selector">
@@ -153,7 +184,7 @@ function EventDetail({ user }) {
             </div>
 
             <div className="purchase-action">
-              {cantidad > 1 && !soldOut && user && (
+              {cantidad > 1 && !soldOut && !atLimit && user && (
                 <p className="price-tag__total">
                   Total: ${total.toLocaleString("es-AR")}
                 </p>
@@ -161,7 +192,7 @@ function EventDetail({ user }) {
               <button
                 className="btn btn--primary btn--lg"
                 onClick={handleComprar}
-                disabled={soldOut || buying}
+                disabled={soldOut || buying || atLimit}
               >
                 {btnLabel}
               </button>
@@ -170,6 +201,7 @@ function EventDetail({ user }) {
         </div>
       </div>
     </div>
+  </div>
   );
 }
 

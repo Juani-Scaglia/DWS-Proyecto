@@ -14,6 +14,17 @@ func PurchaseTicket(userID uint, eventID uint) (*domain.Ticket, error) {
 	if dao.DB == nil {
 		return nil, errors.New("base de datos no inicializada")
 	}
+
+	var userCount int64
+	if err := dao.DB.Model(&domain.Ticket{}).
+		Where("user_id = ? AND event_id = ? AND estado = 'activo'", userID, eventID).
+		Count(&userCount).Error; err != nil {
+		return nil, err
+	}
+	if userCount >= 10 {
+		return nil, errors.New("alcanzaste el límite de 10 entradas para este evento")
+	}
+
 	var ticket *domain.Ticket
 
 	err := dao.DB.Transaction(func(tx *gorm.DB) error {

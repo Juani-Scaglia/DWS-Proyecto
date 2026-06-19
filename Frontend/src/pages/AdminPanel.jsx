@@ -116,6 +116,8 @@ function AdminPanel({ user }) {
                 <option value="Recitales">Recitales</option>
                 <option value="Teatro">Teatro</option>
                 <option value="Deportes">Deportes</option>
+                <option value="Cine">Cine</option>
+                <option value="Otra">Otra</option>
               </select>
             </div>
           </div>
