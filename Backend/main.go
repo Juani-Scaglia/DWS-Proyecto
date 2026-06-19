@@ -16,6 +16,7 @@ func main() {
 
 	// 2. Crear el servidor/enrutador de Gin
 	r := gin.Default()
+	r.SetTrustedProxies(nil)
 
 	// 3. Configurar Middleware de CORS
 	r.Use(func(c *gin.Context) {
