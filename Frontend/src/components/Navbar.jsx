@@ -5,29 +5,34 @@ function Navbar({ user, onLogout }) {
 
   const handleLogout = () => {
     onLogout();
-    navigate("/login");
+    navigate("/");
   };
 
   return (
-    <nav>
-      <Link to="/">Inicio</Link>
-      {user ? (
-        <>
-          {" | "}
-          <Link to="/tickets">Mis Entradas</Link>
-          {" | "}
-          <span>{user.email}</span>
-          {" | "}
-          <button onClick={handleLogout}>Cerrar sesión</button>
-        </>
-      ) : (
-        <>
-          {" | "}
-          <Link to="/login">Login</Link>
-          {" | "}
-          <Link to="/register">Registro</Link>
-        </>
-      )}
+    <nav className="navbar">
+      <Link to="/" className="navbar__logo">
+        TicketHub
+      </Link>
+
+      <div className="navbar__links">
+        <Link to="/" className="navbar__link">Eventos</Link>
+
+        {user ? (
+          <>
+            <Link to="/tickets" className="navbar__link">Mis Entradas</Link>
+            {user.rol === "admin" && (
+              <Link to="/admin" className="navbar__link navbar__link--admin">Admin</Link>
+            )}
+            <div className="navbar__user">{user.email}</div>
+            <button className="btn btn--ghost" onClick={handleLogout}>Salir</button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="navbar__link">Iniciar sesión</Link>
+            <Link to="/register" className="btn btn--primary btn--sm">Registrarse</Link>
+          </>
+        )}
+      </div>
     </nav>
   );
 }

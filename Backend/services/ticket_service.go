@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"backend/dao"
 	domain "backend/domain/models"
@@ -20,9 +21,10 @@ func PurchaseTicket(userID uint, eventID uint) (*domain.Ticket, error) {
 			return err
 		}
 		t := &domain.Ticket{
-			UserID:  userID,
-			EventID: eventID,
-			Estado:  "activo",
+			UserID:    userID,
+			EventID:   eventID,
+			FechaComp: time.Now(),
+			Estado:    "activo",
 		}
 		if err := dao.CreateTicket(tx, t); err != nil {
 			return err
