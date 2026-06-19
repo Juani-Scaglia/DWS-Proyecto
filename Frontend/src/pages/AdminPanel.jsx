@@ -1,22 +1,29 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DatePicker, { registerLocale } from "react-datepicker";
+import { es } from "date-fns/locale";
+import "react-datepicker/dist/react-datepicker.css";
 import { getEvents, createEvent, deleteEvent } from "../services/eventService";
+
+registerLocale("es", es);
 
 const EMPTY_FORM = {
   titulo: "",
   descripcion: "",
   categoria: "Recitales",
-  fecha: "",
-  hora: "",
   lugar: "",
   precio: "",
   cupo_maximo: "",
 };
 
+const todayStart = new Date();
+todayStart.setHours(0, 0, 0, 0);
+
 function AdminPanel({ user }) {
   const navigate = useNavigate();
   const [events, setEvents]     = useState([]);
   const [form, setForm]         = useState(EMPTY_FORM);
+  const [fechaHora, setFechaHora] = useState(null);
   const [loading, setLoading]   = useState(false);
   const [fetching, setFetching] = useState(true);
   const [success, setSuccess]   = useState("");
@@ -43,6 +50,10 @@ function AdminPanel({ user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!fechaHora) {
+      setError("Seleccioná una fecha y horario.");
+      return;
+    }
     setError("");
     setSuccess("");
     setLoading(true);
@@ -51,10 +62,11 @@ function AdminPanel({ user }) {
         ...form,
         precio: parseFloat(form.precio),
         cupo_maximo: parseInt(form.cupo_maximo),
-        fecha: new Date(`${form.fecha}T${form.hora || "00:00"}`).toISOString(),
+        fecha: fechaHora.toISOString(),
       });
       setSuccess(`Evento "${form.titulo}" creado correctamente.`);
       setForm(EMPTY_FORM);
+      setFechaHora(null);
       cargarEventos();
     } catch (err) {
       setError(err.response?.data?.error || "Error al crear el evento");
@@ -86,7 +98,6 @@ function AdminPanel({ user }) {
       {success && <div className="alert alert--success">{success}</div>}
       {error   && <div className="alert alert--error">{error}</div>}
 
-      {/* Formulario de nuevo evento */}
       <div className="admin-section">
         <h2 className="admin-section__title">Nuevo Evento</h2>
         <form onSubmit={handleSubmit} className="admin-form">
@@ -137,26 +148,34 @@ function AdminPanel({ user }) {
 
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label" htmlFor="fecha">Fecha</label>
-              <input
-                id="fecha"
+              <label className="form-label">Fecha</label>
+              <DatePicker
+                locale="es"
+                selected={fechaHora}
+                onChange={(date) => setFechaHora(date)}
+                minDate={todayStart}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="Seleccioná una fecha"
                 className="form-input"
-                name="fecha"
-                type="date"
-                value={form.fecha}
-                onChange={handleChange}
+                calendarClassName="dp-calendar"
                 required
               />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="hora">Horario</label>
-              <input
-                id="hora"
+              <label className="form-label">Horario</label>
+              <DatePicker
+                locale="es"
+                selected={fechaHora}
+                onChange={(date) => setFechaHora(date)}
+                showTimeSelect
+                showTimeSelectOnly
+                timeIntervals={15}
+                timeCaption="Hora"
+                dateFormat="HH:mm"
+                timeFormat="HH:mm"
+                placeholderText="Seleccioná el horario"
                 className="form-input"
-                name="hora"
-                type="time"
-                value={form.hora}
-                onChange={handleChange}
+                calendarClassName="dp-calendar"
                 required
               />
             </div>
@@ -218,7 +237,6 @@ function AdminPanel({ user }) {
         </form>
       </div>
 
-      {/* Lista de eventos existentes */}
       <div className="admin-section">
         <h2 className="admin-section__title">Eventos existentes</h2>
         {fetching ? (
