@@ -53,20 +53,24 @@ func Register(input RegisterInput) (*domain.User, error) {
 	return &user, nil
 }
 
-func Login(input LoginInput) (string, error) {
+func Login(input LoginInput) (string, *domain.User, error) {
 	var user domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", errors.New("credenciales inválidas")
+			return "", nil, errors.New("credenciales inválidas")
 		}
-		return "", err
+		return "", nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		return "", errors.New("credenciales inválidas")
+		return "", nil, errors.New("credenciales inválidas")
 	}
 
-	return generateJWT(user)
+	token, err := generateJWT(user)
+	if err != nil {
+		return "", nil, err
+	}
+	return token, &user, nil
 }
 
 func generateJWT(user domain.User) (string, error) {

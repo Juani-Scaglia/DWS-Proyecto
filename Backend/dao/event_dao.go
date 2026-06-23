@@ -3,39 +3,36 @@ package dao
 import (
 	"backend/domain/models"
 	"errors"
+
 	"gorm.io/gorm"
 )
 
-// GetAllEvents trae los eventos, opcionalmente filtrados por categoría (Requisito Regularidad)
 func GetAllEvents(category string) ([]models.Event, error) {
 	var events []models.Event
-	
-	// Si el frontend manda una categoría, filtramos en MySQL
+	q := DB.Preload("Venue")
 	if category != "" {
-		result := DB.Where("category = ?", category).Find(&events)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		return events, nil
+		q = q.Where("categoria = ?", category)
 	}
-
-	// Si no manda categoría, trae todos de forma general
-	result := DB.Find(&events)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return events, nil
+	return events, q.Find(&events).Error
 }
 
-// GetEventByID busca un evento puntual a partir de su ID único
 func GetEventByID(id uint) (models.Event, error) {
 	var event models.Event
-	result := DB.First(&event, id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return event, errors.New("evento no encontrado")
-		}
-		return event, result.Error
+	err := DB.Preload("Venue").First(&event, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return event, errors.New("evento no encontrado")
 	}
-	return event, nil
+	return event, err
+}
+
+func CreateEvent(event *models.Event) error {
+	return DB.Create(event).Error
+}
+
+func UpdateEvent(id uint, fields map[string]interface{}) error {
+	return DB.Model(&models.Event{}).Where("id = ?", id).Updates(fields).Error
+}
+
+func DeleteEvent(id uint) error {
+	return DB.Delete(&models.Event{}, id).Error
 }

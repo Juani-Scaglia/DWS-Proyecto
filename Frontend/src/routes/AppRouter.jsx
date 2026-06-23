@@ -5,16 +5,18 @@ import EventDetail from "../pages/EventDetail";
 import MyTickets from "../pages/MyTickets";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
+import AdminPanel from "../pages/AdminPanel";
 
-function AppRouter() {
+function AppRouter({ user, onLogin }) {
   return (
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/event/:id" element={<EventDetail />} />
-        <Route path="/tickets" element={<MyTickets />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/event/:id" element={<EventDetail user={user} />} />
+      <Route path="/tickets" element={<MyTickets user={user} />} />
+      <Route path="/login" element={<Login onLogin={onLogin} />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/admin" element={<AdminPanel user={user} />} />
+    </Routes>
   );
 }
 

@@ -4,7 +4,6 @@ import (
 	"time"
 )
 
-// User representa a los usuarios del sistema (tanto Clientes como Administradores)
 type User struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	Email     string    `gorm:"type:varchar(191);unique;not null" json:"email"`
@@ -17,30 +16,48 @@ type User struct {
 	Tickets   []Ticket  `gorm:"foreignKey:UserID" json:"tickets,omitempty"`
 }
 
-// Event representa los eventos disponibles en el catálogo (Actualizado con Categoría)
+type Venue struct {
+	ID              uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Nombre          string    `gorm:"type:varchar(150);not null" json:"nombre"`
+	Direccion       string    `gorm:"type:varchar(255);not null" json:"direccion"`
+	Filas           int       `gorm:"not null" json:"filas"`
+	ColumnasPorFila int       `gorm:"not null" json:"columnas_por_fila"`
+	Capacidad       int       `gorm:"not null" json:"capacidad"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
 type Event struct {
 	ID          uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	Titulo      string    `gorm:"type:varchar(150);not null" json:"titulo"`
 	Descripcion string    `gorm:"type:text" json:"descripcion"`
-	
-	// NUEVO CAMPO: Para filtrar por tipo de evento (ej: 'Recitales', 'Teatro', 'Deportes')
-	Categoria   string    `gorm:"type:varchar(100);not null;index" json:"categoria"` 
-	
+	Categoria   string    `gorm:"type:varchar(100);not null;index" json:"categoria"`
 	Fecha       time.Time `gorm:"not null" json:"fecha"`
 	Lugar       string    `gorm:"type:varchar(150);not null" json:"lugar"`
 	Precio      float64   `gorm:"type:decimal(10,2);not null" json:"precio"`
 	CupoMaximo  int       `gorm:"not null" json:"cupo_maximo"`
-	CupoDispon  int       `gorm:"not null" json:"cupo_disponible"`
+	CupoDispon  int       `gorm:"column:cupo_disponible;not null" json:"cupo_disponible"`
+	VenueID     uint      `gorm:"not null;default:0" json:"venue_id"`
+	Venue       *Venue    `gorm:"foreignKey:VenueID" json:"venue,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-// Ticket representa las entradas compradas por los usuarios para un evento
+type Seat struct {
+	ID      uint   `gorm:"primaryKey;autoIncrement" json:"id"`
+	EventID uint   `gorm:"not null;index" json:"event_id"`
+	Fila    string `gorm:"type:varchar(5);not null" json:"fila"`
+	Numero  int    `gorm:"not null" json:"numero"`
+	Ocupado bool   `gorm:"default:false" json:"ocupado"`
+	Event   *Event `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE;" json:"-"`
+}
+
 type Ticket struct {
 	ID        uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	UserID    uint      `gorm:"not null" json:"user_id"`
 	EventID   uint      `gorm:"not null" json:"event_id"`
+	SeatID    *uint     `json:"seat_id,omitempty"`
 	FechaComp time.Time `json:"fecha_compra"`
 	Estado    string    `gorm:"type:varchar(50);default:'activo'" json:"estado"`
 	User      *User     `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;" json:"user,omitempty"`
 	Event     *Event    `gorm:"foreignKey:EventID;constraint:OnDelete:RESTRICT;" json:"event,omitempty"`
+	Seat      *Seat     `gorm:"foreignKey:SeatID" json:"seat,omitempty"`
 }
