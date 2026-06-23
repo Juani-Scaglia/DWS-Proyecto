@@ -588,7 +588,7 @@ func TestGetVenueByID_Inexistente(t *testing.T) {
 func crearVenueAPI(t *testing.T) uint {
 	t.Helper()
 	token := tokenParaAdmin()
-	body := `{"nombre":"Venue Temp","direccion":"Calle Test 1","filas":2,"columnas_por_fila":5}`
+	body := `{"nombre":"Venue Temp","direccion":"Calle Test 1","cap_platea_norte":10}`
 	req, _ := http.NewRequest("POST", "/api/admin/venues", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -613,7 +613,7 @@ func TestCreateVenueAdmin_InputInvalido(t *testing.T) {
 
 func TestCreateVenueAdmin_Exitoso(t *testing.T) {
 	token := tokenParaAdmin()
-	body := `{"nombre":"Nuevo Venue","direccion":"Av. Test 100","filas":5,"columnas_por_fila":10}`
+	body := `{"nombre":"Nuevo Venue","direccion":"Av. Test 100","cap_platea_norte":50}`
 	req, _ := http.NewRequest("POST", "/api/admin/venues", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -626,7 +626,7 @@ func TestCreateVenueAdmin_Exitoso(t *testing.T) {
 
 func TestUpdateVenueAdmin_IDInvalido(t *testing.T) {
 	token := tokenParaAdmin()
-	body := `{"nombre":"X","direccion":"X","filas":1,"columnas_por_fila":1}`
+	body := `{"nombre":"X","direccion":"X","cap_platea_norte":1}`
 	req, _ := http.NewRequest("PUT", "/api/admin/venues/abc", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -639,7 +639,7 @@ func TestUpdateVenueAdmin_IDInvalido(t *testing.T) {
 
 func TestUpdateVenueAdmin_Inexistente(t *testing.T) {
 	token := tokenParaAdmin()
-	body := `{"nombre":"X","direccion":"X","filas":1,"columnas_por_fila":1}`
+	body := `{"nombre":"X","direccion":"X","cap_platea_norte":1}`
 	req, _ := http.NewRequest("PUT", "/api/admin/venues/99999", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -653,7 +653,7 @@ func TestUpdateVenueAdmin_Inexistente(t *testing.T) {
 func TestUpdateVenueAdmin_Exitoso(t *testing.T) {
 	id := crearVenueAPI(t)
 	token := tokenParaAdmin()
-	body := `{"nombre":"Venue Actualizado","direccion":"Nueva Dir","filas":3,"columnas_por_fila":8}`
+	body := `{"nombre":"Venue Actualizado","direccion":"Nueva Dir","cap_platea_norte":24}`
 	req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/admin/venues/%d", id), strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)

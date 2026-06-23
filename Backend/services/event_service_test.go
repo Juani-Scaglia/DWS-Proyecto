@@ -25,11 +25,11 @@ func TestMain(m *testing.M) {
 
 func seedVenue(db *gorm.DB) domain.Venue {
 	v := domain.Venue{
-		Nombre:          "Venue Test",
-		Direccion:       "Calle Falsa 123",
-		Filas:           5,
-		ColumnasPorFila: 10,
-		Capacidad:       50,
+		Nombre:         "Venue Test",
+		Direccion:      "Calle Falsa 123",
+		Capacidad:      50,
+		CapPlateaNorte: 25,
+		CapPlateaSur:   25,
 	}
 	db.Create(&v)
 	return v
@@ -340,8 +340,7 @@ func TestCreateVenue_Exitoso(t *testing.T) {
 	input := VenueInput{
 		Nombre:          "Estadio Test Service",
 		Direccion:       "Calle Test 123",
-		Filas:           4,
-		ColumnasPorFila: 5,
+		CapPlateaNorte: 20,
 	}
 	venue, err := CreateVenue(input)
 	if err != nil {
@@ -357,8 +356,7 @@ func TestUpdateVenue_Exitoso(t *testing.T) {
 	input := VenueInput{
 		Nombre:          "Venue Actualizado",
 		Direccion:       "Nueva Dirección 456",
-		Filas:           3,
-		ColumnasPorFila: 6,
+		CapPlateaNorte: 18,
 	}
 	updated, err := UpdateVenue(v.ID, input)
 	if err != nil {
@@ -370,7 +368,7 @@ func TestUpdateVenue_Exitoso(t *testing.T) {
 }
 
 func TestUpdateVenue_Inexistente(t *testing.T) {
-	input := VenueInput{Nombre: "X", Direccion: "X", Filas: 1, ColumnasPorFila: 1}
+	input := VenueInput{Nombre: "X", Direccion: "X", CapPlateaNorte: 1}
 	_, err := UpdateVenue(99999, input)
 	if err == nil {
 		t.Error("se esperaba error para venue inexistente")
@@ -384,7 +382,7 @@ func TestUpdateVenue_ConEventos(t *testing.T) {
 		Lugar: "Somewhere", Precio: 10, CupoMaximo: 10, CupoDispon: 10,
 		VenueID: v.ID,
 	})
-	input := VenueInput{Nombre: "X", Direccion: "X", Filas: 1, ColumnasPorFila: 1}
+	input := VenueInput{Nombre: "X", Direccion: "X", CapPlateaNorte: 1}
 	_, err := UpdateVenue(v.ID, input)
 	if err == nil {
 		t.Error("se esperaba error al actualizar venue con eventos asociados")
@@ -461,7 +459,7 @@ func TestGetSeatsByEventID_OK(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSeatsByEventID falló: %v", err)
 	}
-	expected := v.Filas * v.ColumnasPorFila
+	expected := v.Capacidad
 	if len(seats) != expected {
 		t.Errorf("cantidad de asientos: esperado %d, obtenido %d", expected, len(seats))
 	}
@@ -762,7 +760,7 @@ func TestCreateVenue_DBNula(t *testing.T) {
 	defer func() { dao.DB = saved }()
 
 	_, err := CreateVenue(VenueInput{
-		Nombre: "Test", Direccion: "Dir", Filas: 5, ColumnasPorFila: 10,
+		Nombre: "Test", Direccion: "Dir", CapPlateaNorte: 50,
 	})
 	if err == nil {
 		t.Error("se esperaba error con DB nula")

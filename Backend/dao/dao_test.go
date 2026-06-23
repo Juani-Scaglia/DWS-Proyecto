@@ -541,7 +541,7 @@ func TestFreeSeatByTicketSeatID_DAO(t *testing.T) {
 
 func TestCreateSeatsForEvent_OK(t *testing.T) {
 	e := seedEvento(10)
-	if err := CreateSeatsForEvent(DB, e.ID, 3, 4); err != nil {
+	if err := CreateSeatsForEvent(DB, e.ID, []SectorDef{{Nombre: "Test", Capacidad: 12}}); err != nil {
 		t.Fatal(err)
 	}
 	seats, _ := GetSeatsByEventID(e.ID)

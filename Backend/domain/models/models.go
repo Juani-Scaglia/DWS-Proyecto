@@ -17,13 +17,19 @@ type User struct {
 }
 
 type Venue struct {
-	ID              uint      `gorm:"primaryKey;autoIncrement" json:"id"`
-	Nombre          string    `gorm:"type:varchar(150);not null" json:"nombre"`
-	Direccion       string    `gorm:"type:varchar(255);not null" json:"direccion"`
-	Filas           int       `gorm:"not null" json:"filas"`
-	ColumnasPorFila int       `gorm:"not null" json:"columnas_por_fila"`
-	Capacidad       int       `gorm:"not null" json:"capacidad"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID                    uint      `gorm:"primaryKey;autoIncrement" json:"id"`
+	Nombre                string    `gorm:"type:varchar(150);not null" json:"nombre"`
+	Direccion             string    `gorm:"type:varchar(255);not null" json:"direccion"`
+	Filas                 int       `gorm:"not null;default:0" json:"filas"`
+	ColumnasPorFila       int       `gorm:"not null;default:0" json:"columnas_por_fila"`
+	Capacidad             int       `gorm:"not null" json:"capacidad"`
+	CapPlateaNorte        int       `gorm:"not null;default:0" json:"cap_platea_norte"`
+	CapPlateaSur          int       `gorm:"not null;default:0" json:"cap_platea_sur"`
+	CapTribunaEste        int       `gorm:"not null;default:0" json:"cap_tribuna_este"`
+	CapTribunaOeste       int       `gorm:"not null;default:0" json:"cap_tribuna_oeste"`
+	CapPlateaPreferencial int       `gorm:"not null;default:0" json:"cap_platea_preferencial"`
+	CapCampo              int       `gorm:"not null;default:0" json:"cap_campo"`
+	CreatedAt             time.Time `json:"created_at"`
 }
 
 type Event struct {
@@ -34,6 +40,7 @@ type Event struct {
 	Fecha       time.Time `gorm:"not null" json:"fecha"`
 	Lugar       string    `gorm:"type:varchar(150);not null" json:"lugar"`
 	Precio      float64   `gorm:"type:decimal(10,2);not null" json:"precio"`
+	Imagen      string    `gorm:"type:varchar(500)" json:"imagen"`
 	CupoMaximo  int       `gorm:"not null" json:"cupo_maximo"`
 	CupoDispon  int       `gorm:"column:cupo_disponible;not null" json:"cupo_disponible"`
 	VenueID     uint      `gorm:"not null;default:0" json:"venue_id"`
@@ -44,6 +51,7 @@ type Event struct {
 type Seat struct {
 	ID      uint   `gorm:"primaryKey;autoIncrement" json:"id"`
 	EventID uint   `gorm:"not null;index" json:"event_id"`
+	Sector  string `gorm:"type:varchar(50);not null;default:'General'" json:"sector"`
 	Fila    string `gorm:"type:varchar(5);not null" json:"fila"`
 	Numero  int    `gorm:"not null" json:"numero"`
 	Ocupado bool   `gorm:"default:false" json:"ocupado"`
