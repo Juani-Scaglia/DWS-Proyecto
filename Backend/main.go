@@ -9,6 +9,7 @@ import (
 )
 
 const routeEventByID = "/events/:id"
+const routeVenueByID = "/venues/:id"
 
 func main() {
 	// 1. Inicializar la Base de Datos (GORM)
@@ -41,9 +42,12 @@ func main() {
 	// ==========================================
 	api := r.Group("/api")
 	{
-		// --- RUTAS PÚBLICAS (Eventos y Auth) ---
-		api.GET("/events", controllers.GetEvents)        
-		api.GET(routeEventByID, controllers.GetEventByID) 
+		// --- RUTAS PÚBLICAS (Eventos, Venues y Auth) ---
+		api.GET("/events", controllers.GetEvents)
+		api.GET(routeEventByID, controllers.GetEventByID)
+		api.GET("/events/:id/seats", controllers.GetEventSeats)
+		api.GET("/venues", controllers.GetVenues)
+		api.GET(routeVenueByID, controllers.GetVenueByID)
 		api.POST("/auth/register", controllers.RegisterUser)
 		api.POST("/auth/login", controllers.LoginUser)
 
@@ -65,6 +69,9 @@ func main() {
 			admin.POST("/events", controllers.CreateEventAdmin)
 			admin.PUT(routeEventByID, controllers.UpdateEventAdmin)
 			admin.DELETE(routeEventByID, controllers.DeleteEventAdmin)
+			admin.POST("/venues", controllers.CreateVenueAdmin)
+			admin.PUT(routeVenueByID, controllers.UpdateVenueAdmin)
+			admin.DELETE(routeVenueByID, controllers.DeleteVenueAdmin)
 		}
 	}
 

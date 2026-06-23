@@ -23,3 +23,6 @@ export const updateEvent = async (id, data) =>
 
 export const deleteEvent = async (id) =>
   axios.delete(`${API_URL}/admin/events/${id}`, authHeader());
+
+export const getEventSeats = async (id) =>
+  axios.get(`${API_URL}/events/${id}/seats`);
