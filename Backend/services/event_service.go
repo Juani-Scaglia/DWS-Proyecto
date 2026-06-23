@@ -49,7 +49,7 @@ func CreateEvent(input EventInput) (*domain.Event, error) {
 		if err := tx.Create(e).Error; err != nil {
 			return err
 		}
-		if err := dao.CreateSeatsForEvent(tx, e.ID, venue.Filas, venue.ColumnasPorFila); err != nil {
+		if err := dao.CreateSeatsForEvent(tx, e.ID, VenueSectores(venue)); err != nil {
 			return err
 		}
 		event = e

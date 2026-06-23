@@ -10,7 +10,20 @@ import { getEventReport } from "../services/ticketService";
 registerLocale("es", es);
 
 const EMPTY_EVENT = { titulo: "", descripcion: "", categoria: "Recitales", precio: "", venue_id: "" };
-const EMPTY_VENUE = { nombre: "", direccion: "", capacidad: "" };
+const EMPTY_VENUE = {
+  nombre: "", direccion: "",
+  cap_platea_norte: "", cap_platea_sur: "",
+  cap_tribuna_este: "", cap_tribuna_oeste: "",
+  cap_platea_preferencial: "", cap_campo: "",
+};
+const SECTORES = [
+  { key: "cap_platea_norte", label: "Platea Norte" },
+  { key: "cap_platea_sur", label: "Platea Sur" },
+  { key: "cap_tribuna_este", label: "Tribuna Este" },
+  { key: "cap_tribuna_oeste", label: "Tribuna Oeste" },
+  { key: "cap_platea_preferencial", label: "Preferencial" },
+  { key: "cap_campo", label: "Campo / Foso" },
+];
 
 const todayStart = new Date();
 todayStart.setHours(0, 0, 0, 0);
@@ -120,7 +133,12 @@ export default function AdminPanel({ user }) {
     e.preventDefault(); clearMsg(); setLoading(true);
     const payload = {
       nombre: venueForm.nombre, direccion: venueForm.direccion,
-      capacidad: parseInt(venueForm.capacidad),
+      cap_platea_norte: parseInt(venueForm.cap_platea_norte) || 0,
+      cap_platea_sur: parseInt(venueForm.cap_platea_sur) || 0,
+      cap_tribuna_este: parseInt(venueForm.cap_tribuna_este) || 0,
+      cap_tribuna_oeste: parseInt(venueForm.cap_tribuna_oeste) || 0,
+      cap_platea_preferencial: parseInt(venueForm.cap_platea_preferencial) || 0,
+      cap_campo: parseInt(venueForm.cap_campo) || 0,
     };
     try {
       if (editingVenue) {
@@ -138,7 +156,15 @@ export default function AdminPanel({ user }) {
 
   const startEditVenue = (v) => {
     setEditingVenue(v);
-    setVenueForm({ nombre: v.nombre, direccion: v.direccion, capacidad: String(v.capacidad) });
+    setVenueForm({
+      nombre: v.nombre, direccion: v.direccion,
+      cap_platea_norte: String(v.cap_platea_norte || ""),
+      cap_platea_sur: String(v.cap_platea_sur || ""),
+      cap_tribuna_este: String(v.cap_tribuna_este || ""),
+      cap_tribuna_oeste: String(v.cap_tribuna_oeste || ""),
+      cap_platea_preferencial: String(v.cap_platea_preferencial || ""),
+      cap_campo: String(v.cap_campo || ""),
+    });
     setTab("venues");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -285,10 +311,18 @@ export default function AdminPanel({ user }) {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Capacidad (cantidad de asientos)</label>
-                <input className="form-input" name="capacidad" type="number" min="1" placeholder="Ej: 16000" value={venueForm.capacidad} onChange={handleVF} required />
+              <p className="form-label" style={{ marginBottom: 4 }}>Capacidad por sector (deja en 0 los que no apliquen)</p>
+              <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+                {SECTORES.map(({ key, label }) => (
+                  <div className="form-group" key={key}>
+                    <label className="form-label">{label}</label>
+                    <input className="form-input" name={key} type="number" min="0" placeholder="0" value={venueForm[key]} onChange={handleVF} />
+                  </div>
+                ))}
               </div>
+              <p className="form-hint" style={{ fontSize: 14, fontWeight: 600 }}>
+                Capacidad total: {SECTORES.reduce((sum, { key }) => sum + (parseInt(venueForm[key]) || 0), 0)} asientos
+              </p>
 
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <button type="submit" className="btn btn--primary btn--lg" disabled={loading}>
@@ -305,7 +339,7 @@ export default function AdminPanel({ user }) {
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
-                    <tr><th>#</th><th>Nombre</th><th>Direccion</th><th>Capacidad</th><th></th></tr>
+                    <tr><th>#</th><th>Nombre</th><th>Direccion</th><th>Capacidad</th><th>Sectores</th><th></th></tr>
                   </thead>
                   <tbody>
                     {venues.map((v) => (
@@ -313,7 +347,10 @@ export default function AdminPanel({ user }) {
                         <td>{v.id}</td>
                         <td><strong>{v.nombre}</strong></td>
                         <td>{v.direccion}</td>
-                        <td>{v.capacidad} asientos</td>
+                        <td>{v.capacidad}</td>
+                        <td style={{ fontSize: 12 }}>
+                          {SECTORES.filter(({ key }) => v[key] > 0).map(({ key, label }) => `${label}: ${v[key]}`).join(" | ")}
+                        </td>
                         <td style={{ display: "flex", gap: 6 }}>
                           <button className="btn btn--secondary btn--sm" onClick={() => startEditVenue(v)}>Editar</button>
                           <button className="btn btn--danger btn--sm" onClick={() => removeVenue(v)}>Eliminar</button>
