@@ -1,126 +1,82 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { register } from "../services/authService";
 
 function Register() {
-  const [form, setForm]       = useState({ nombre: "", apellido: "", email: "", password: "", dni: "" });
-  const [error, setError]     = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [dni, setDNI] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      await register(form);
-      navigate("/login");
-    } catch (err) {
-      setError(err.response?.data?.error || "Error al registrarse. Intentá de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+
+  try {
+    await register({
+      nombre,
+      apellido,
+      email,
+      password,
+      dni
+    });
+
+    alert("Usuario registrado");
+  } catch (error) {
+    alert("Error al registrar usuario");
+  }
+};
 
   return (
-    <div className="auth-page">
-      <div className="auth-card" style={{ maxWidth: 460 }}>
-        <div className="auth-card__logo">TH</div>
-        <h1 className="auth-card__title">Crear cuenta</h1>
-        <p className="auth-card__subtitle">Completá tus datos para registrarte</p>
+    <div>
+      <h1>Registro</h1>
 
-        {error && <div className="alert alert--error">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <input
+          placeholder="Nombre"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+        />
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label" htmlFor="nombre">Nombre</label>
-              <input
-                id="nombre"
-                className="form-input"
-                name="nombre"
-                placeholder="Juan"
-                value={form.nombre}
-                onChange={handleChange}
-                autoComplete="given-name"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label" htmlFor="apellido">Apellido</label>
-              <input
-                id="apellido"
-                className="form-input"
-                name="apellido"
-                placeholder="Pérez"
-                value={form.apellido}
-                onChange={handleChange}
-                autoComplete="family-name"
-                required
-              />
-            </div>
-          </div>
+        <br />
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="email">Email</label>
-            <input
-              id="email"
-              className="form-input"
-              name="email"
-              type="email"
-              placeholder="tu@email.com"
-              value={form.email}
-              onChange={handleChange}
-              autoComplete="email"
-              required
-            />
-          </div>
+        <input
+          placeholder="Apellido"
+          value={apellido}
+          onChange={(e) => setApellido(e.target.value)}
+        />
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              className="form-input"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={handleChange}
-              autoComplete="new-password"
-              required
-            />
-          </div>
+        <br />
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="dni">DNI</label>
-            <input
-              id="dni"
-              className="form-input"
-              name="dni"
-              placeholder="12345678"
-              value={form.dni}
-              onChange={handleChange}
-              required
-            />
-          </div>
+        <input
+          placeholder="DNI"
+          value={dni}
+          onChange={(e) => setDNI(e.target.value)}
+        />
 
-          <button
-            type="submit"
-            className="btn btn--primary btn--full btn--lg"
-            style={{ marginTop: 8 }}
-            disabled={loading}
-          >
-            {loading ? "Registrando..." : "Crear cuenta"}
-          </button>
-        </form>
+        <br />
 
-        <p style={{ textAlign: "center", marginTop: 24, fontSize: 14, color: "var(--text-muted)" }}>
-          ¿Ya tenés cuenta?{" "}
-          <Link to="/login">Iniciá sesión</Link>
-        </p>
-      </div>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <br />
+
+        <input
+          type="password"
+          placeholder="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <br />
+
+        <button type="submit">
+          Registrarse
+        </button>
+      </form>
     </div>
   );
 }

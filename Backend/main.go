@@ -12,10 +12,8 @@ const routeEventByID = "/events/:id"
 const routeVenueByID = "/venues/:id"
 
 func main() {
-	// 1. Inicializar la Base de Datos (GORM)
 	dao.InitDB()
 
-	// 2. Crear el servidor/enrutador de Gin
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
@@ -37,9 +35,6 @@ func main() {
 		c.Next()
 	})
 
-	// ==========================================
-	// 4. DEFINICIÓN DE ENDPOINTS
-	// ==========================================
 	api := r.Group("/api")
 	{
 		// --- RUTAS PÚBLICAS (Eventos, Venues y Auth) ---
@@ -51,7 +46,7 @@ func main() {
 		api.POST("/auth/register", controllers.RegisterUser)
 		api.POST("/auth/login", controllers.LoginUser)
 
-		// --- RUTAS PROTEGIDAS (Requieren Token JWT) ---
+		// --- RUTAS PROTEGIDAS ---
 		protected := api.Group("/")
 		protected.Use(middlewares.AuthMiddleware())
 		{
