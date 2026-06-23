@@ -8,6 +8,9 @@ import (
 )
 
 func GetAllEvents(category string) ([]models.Event, error) {
+	if DB == nil {
+		return nil, errors.New(errDBNula)
+	}
 	var events []models.Event
 	q := DB.Preload("Venue")
 	if category != "" {
@@ -17,6 +20,9 @@ func GetAllEvents(category string) ([]models.Event, error) {
 }
 
 func GetEventByID(id uint) (models.Event, error) {
+	if DB == nil {
+		return models.Event{}, errors.New(errDBNula)
+	}
 	var event models.Event
 	err := DB.Preload("Venue").First(&event, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -26,6 +32,9 @@ func GetEventByID(id uint) (models.Event, error) {
 }
 
 func CreateEvent(event *models.Event) error {
+	if DB == nil {
+		return errors.New(errDBNula)
+	}
 	return DB.Create(event).Error
 }
 

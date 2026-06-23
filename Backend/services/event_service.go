@@ -14,7 +14,6 @@ type EventInput struct {
 	Categoria   string    `json:"categoria" binding:"required"`
 	Fecha       time.Time `json:"fecha" binding:"required"`
 	Precio      float64   `json:"precio" binding:"required,gt=0"`
-	Imagen      string    `json:"imagen"`
 	VenueID     uint      `json:"venue_id" binding:"required"`
 }
 
@@ -33,6 +32,7 @@ func CreateEvent(input EventInput) (*domain.Event, error) {
 	}
 
 	var event *domain.Event
+
 	err = dao.DB.Transaction(func(tx *gorm.DB) error {
 		e := &domain.Event{
 			Titulo:      input.Titulo,
@@ -41,7 +41,6 @@ func CreateEvent(input EventInput) (*domain.Event, error) {
 			Fecha:       input.Fecha,
 			Lugar:       venue.Nombre + " - " + venue.Direccion,
 			Precio:      input.Precio,
-			Imagen:      input.Imagen,
 			CupoMaximo:  venue.Capacidad,
 			CupoDispon:  venue.Capacidad,
 			VenueID:     input.VenueID,
@@ -49,12 +48,13 @@ func CreateEvent(input EventInput) (*domain.Event, error) {
 		if err := tx.Create(e).Error; err != nil {
 			return err
 		}
-		if err := dao.CreateSeatsForEvent(tx, e.ID, VenueSectores(venue)); err != nil {
+		if err := dao.CreateSeatsForEvent(tx, e.ID, venue.Filas, venue.ColumnasPorFila); err != nil {
 			return err
 		}
 		event = e
 		return nil
 	})
+
 	return event, err
 }
 
@@ -62,10 +62,12 @@ func UpdateEvent(id uint, input EventInput) (*domain.Event, error) {
 	if _, err := dao.GetEventByID(id); err != nil {
 		return nil, err
 	}
+
 	venue, err := dao.GetVenueByID(input.VenueID)
 	if err != nil {
 		return nil, err
 	}
+
 	fields := map[string]interface{}{
 		"titulo":      input.Titulo,
 		"descripcion": input.Descripcion,
@@ -73,7 +75,6 @@ func UpdateEvent(id uint, input EventInput) (*domain.Event, error) {
 		"fecha":       input.Fecha,
 		"lugar":       venue.Nombre + " - " + venue.Direccion,
 		"precio":      input.Precio,
-		"imagen":      input.Imagen,
 		"venue_id":    input.VenueID,
 	}
 	if err := dao.UpdateEvent(id, fields); err != nil {

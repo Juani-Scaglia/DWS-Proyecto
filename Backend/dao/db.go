@@ -14,6 +14,8 @@ import (
 
 var DB *gorm.DB
 
+const errDBNula = "base de datos no inicializada"
+
 func InitDB() {
 	err := godotenv.Load()
 	if err != nil {

@@ -6,13 +6,15 @@ const authHeader = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
 
-export const getVenues = () => axios.get(`${API_URL}/venues`);
+export const getVenues = async () => axios.get(`${API_URL}/venues`);
 
-export const createVenue = (data) =>
+export const getVenueById = async (id) => axios.get(`${API_URL}/venues/${id}`);
+
+export const createVenue = async (data) =>
   axios.post(`${API_URL}/admin/venues`, data, authHeader());
 
-export const updateVenue = (id, data) =>
+export const updateVenue = async (id, data) =>
   axios.put(`${API_URL}/admin/venues/${id}`, data, authHeader());
 
-export const deleteVenue = (id) =>
+export const deleteVenue = async (id) =>
   axios.delete(`${API_URL}/admin/venues/${id}`, authHeader());

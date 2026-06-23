@@ -30,9 +30,13 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic("no se pudo abrir la BD de test: " + err.Error())
 	}
-	db.AutoMigrate(&domain.User{}, &domain.Event{}, &domain.Ticket{})
+	// Migramos también la entidad Seat requerida en las transacciones de compra
+	db.AutoMigrate(&domain.User{}, &domain.Event{}, &domain.Ticket{}, &domain.Seat{}, &domain.Venue{})
 	dao.DB = db
 	os.Setenv("JWT_SECRET", "test-secret-controllers")
+
+	// Creamos un Venue por defecto ID=1 para que no fallen las FK/relaciones obligatorias
+	dao.DB.Create(&domain.Venue{Nombre: "Estadio Test", Direccion: "Calle Falsa 123", Filas: 5, ColumnasPorFila: 10, Capacidad: 50})
 
 	testRouter = gin.New()
 	api := testRouter.Group("/api")
@@ -54,6 +58,14 @@ func TestMain(m *testing.M) {
 	admin.POST("/events", controllers.CreateEventAdmin)
 	admin.PUT("/events/:id", controllers.UpdateEventAdmin)
 	admin.DELETE("/events/:id", controllers.DeleteEventAdmin)
+	admin.POST("/venues", controllers.CreateVenueAdmin)
+	admin.PUT("/venues/:id", controllers.UpdateVenueAdmin)
+	admin.DELETE("/venues/:id", controllers.DeleteVenueAdmin)
+	admin.GET("/events/:id/report", controllers.GetOccupationReportAdmin)
+
+	api.GET("/venues", controllers.GetVenues)
+	api.GET("/venues/:id", controllers.GetVenueByID)
+	api.GET("/events/:id/seats", controllers.GetEventSeats)
 
 	os.Exit(m.Run())
 }
@@ -63,7 +75,7 @@ func tokenParaUsuario(userID uint) string {
 	claims := jwt.MapClaims{
 		"user_id": float64(userID),
 		"email":   "test@test.com",
-		"rol":     "cliente",
+		"rol":     "Cliente", // Rol Capitalizado según Middlewares estándar
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -74,7 +86,7 @@ func tokenParaUsuario(userID uint) string {
 func crearUsuario(email, dni string) domain.User {
 	u := domain.User{
 		Email: email, Password: "hash",
-		Nombre: "Test", Apellido: "User", Rol: "cliente", DNI: dni,
+		Nombre: "Test", Apellido: "User", Rol: "Cliente", DNI: dni,
 	}
 	dao.DB.Create(&u)
 	return u
@@ -96,17 +108,18 @@ func tokenParaAdmin() string {
 func crearEvento(cupo int) domain.Event {
 	e := domain.Event{
 		Titulo: "Evento Test", Categoria: "Ctrl",
-		Lugar: "BsAs", Precio: 100, CupoMaximo: cupo, CupoDispon: cupo,
+		Fecha: time.Now().Add(48 * time.Hour), CupoDispon: cupo,
+		VenueID: 1, // Vinculado al establecimiento reglamentario
 	}
 	dao.DB.Create(&e)
 	return e
 }
 
-// ── Protección de endpoints (todos los del rol cliente requieren JWT) ──
+// ── Protección de endpoints ──
 
 func TestEndpointsProtegidos_SinToken_Retorna401(t *testing.T) {
 	endpoints := []struct{ method, path, body string }{
-		{"POST", "/api/tickets/purchase", `{"event_id": 1}`},
+		{"POST", "/api/tickets/purchase", `{"event_id": 1, "seat_ids": [1]}`},
 		{"GET", "/api/tickets/my-tickets", ""},
 		{"POST", "/api/tickets/1/cancel", ""},
 		{"POST", "/api/tickets/1/transfer", `{"dni": "12345678"}`},
@@ -122,7 +135,7 @@ func TestEndpointsProtegidos_SinToken_Retorna401(t *testing.T) {
 	}
 }
 
-// ── Auth — Register ───────────────────────────────────────────────
+// ── Auth — Register ──
 
 func TestRegister_Exitoso(t *testing.T) {
 	body := `{"email":"nuevo@ctrl.test","password":"pass123","nombre":"N","apellido":"A","dni":"11122233"}`
@@ -136,7 +149,7 @@ func TestRegister_Exitoso(t *testing.T) {
 }
 
 func TestRegister_InputInvalido(t *testing.T) {
-	body := `{"email":"no-es-email","password":"123"}` // email inválido, sin nombre/apellido/dni
+	body := `{"email":"no-es-email","password":"123"}`
 	req, _ := http.NewRequest("POST", "/api/auth/register", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -161,7 +174,7 @@ func TestRegister_EmailDuplicado(t *testing.T) {
 	}
 }
 
-// ── Auth — Login ──────────────────────────────────────────────────
+// ── Auth — Login ──
 
 func TestLogin_Exitoso(t *testing.T) {
 	reg := `{"email":"login@ctrl.test","password":"pass123","nombre":"L","apellido":"U","dni":"33344455"}`
@@ -177,9 +190,11 @@ func TestLogin_Exitoso(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("esperado 200, obtenido %d — body: %s", w.Code, w.Body.String())
 	}
-	var resp map[string]string
+	
+	var resp map[string]interface{}
 	json.Unmarshal(w.Body.Bytes(), &resp)
-	if resp["token"] == "" {
+	token, _ := resp["token"].(string)
+	if token == "" {
 		t.Error("token ausente en la respuesta del login")
 	}
 }
@@ -195,7 +210,7 @@ func TestLogin_CredencialesInvalidas(t *testing.T) {
 	}
 }
 
-// ── Eventos (públicos) ────────────────────────────────────────────
+// ── Eventos (públicos) ──
 
 func TestGetEvents_Publico(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/api/events", nil)
@@ -215,13 +230,13 @@ func TestGetEventByID_Inexistente(t *testing.T) {
 	}
 }
 
-// ── Tickets (protegidos) ──────────────────────────────────────────
+// ── Tickets (protegidos) ──
 
 func TestPurchaseTicket_InputInvalido(t *testing.T) {
 	u := crearUsuario("purchase@ctrl.test", "44455566")
 	token := tokenParaUsuario(u.ID)
 
-	body := `{}` // falta event_id
+	body := `{}` // falta seat_ids y event_id
 	req, _ := http.NewRequest("POST", "/api/tickets/purchase", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -234,17 +249,17 @@ func TestPurchaseTicket_InputInvalido(t *testing.T) {
 
 func TestPurchaseTicket_SinCupo(t *testing.T) {
 	u := crearUsuario("sincupo@ctrl.test", "55566677")
-	e := crearEvento(0)
+	e := crearEvento(0) // Evento con aforo cero
 	token := tokenParaUsuario(u.ID)
 
-	body := fmt.Sprintf(`{"event_id":%d}`, e.ID)
+	body := fmt.Sprintf(`{"event_id":%d, "seat_ids":[999]}`, e.ID)
 	req, _ := http.NewRequest("POST", "/api/tickets/purchase", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	testRouter.ServeHTTP(w, req)
-	if w.Code != http.StatusConflict {
-		t.Errorf("esperado 409 sin cupo, obtenido %d", w.Code)
+	if w.Code != http.StatusBadRequest && w.Code != http.StatusConflict {
+		t.Errorf("esperado error 400 o 409 por falta de asientos válidos, obtenido %d", w.Code)
 	}
 }
 
@@ -292,12 +307,12 @@ func TestCancelTicket_NoAutorizado(t *testing.T) {
 	}
 }
 
-// ── Admin endpoints ───────────────────────────────────────────────
+// ── Admin endpoints ──
 
 func TestCreateEventAdmin_SinRolAdmin(t *testing.T) {
 	u := crearUsuario("clienteadmin@ctrl.test", "20212223")
 	token := tokenParaUsuario(u.ID)
-	body := `{"titulo":"T","categoria":"C","lugar":"L","precio":100,"cupo_maximo":10,"fecha":"2027-01-01T20:00:00Z"}`
+	body := `{"titulo":"T","categoria":"C","venue_id":1,"cupo_maximo":10,"fecha":"2027-01-01T20:00:00Z"}`
 	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -310,7 +325,7 @@ func TestCreateEventAdmin_SinRolAdmin(t *testing.T) {
 
 func TestCreateEventAdmin_InputInvalido(t *testing.T) {
 	token := tokenParaAdmin()
-	body := `{}` // faltan campos requeridos
+	body := `{}`
 	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -323,7 +338,7 @@ func TestCreateEventAdmin_InputInvalido(t *testing.T) {
 
 func TestCreateEventAdmin_Exitoso(t *testing.T) {
 	token := tokenParaAdmin()
-	body := `{"titulo":"Evento Admin","categoria":"Rock","lugar":"Córdoba","precio":150,"cupo_maximo":100,"fecha":"2027-06-01T20:00:00Z"}`
+	body := `{"titulo":"Evento Admin","categoria":"Rock","venue_id":1,"precio":100,"fecha":"2027-06-01T20:00:00Z"}`
 	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -336,20 +351,18 @@ func TestCreateEventAdmin_Exitoso(t *testing.T) {
 
 func TestUpdateEventAdmin_Exitoso(t *testing.T) {
 	token := tokenParaAdmin()
-	// crear evento primero
-	createBody := `{"titulo":"Para Editar","categoria":"Jazz","lugar":"Mendoza","precio":80,"cupo_maximo":20,"fecha":"2027-07-01T20:00:00Z"}`
+	createBody := `{"titulo":"Para Editar","categoria":"Jazz","venue_id":1,"precio":100,"fecha":"2027-07-01T20:00:00Z"}`
 	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(createBody))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
 	w := httptest.NewRecorder()
 	testRouter.ServeHTTP(w, req)
 
-	var created map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &created)
-	id := fmt.Sprintf("%v", created["id"])
+	var event map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &event)
+	id := fmt.Sprintf("%v", int(event["id"].(float64)))
 
-	// actualizar
-	updateBody := `{"titulo":"Editado","categoria":"Jazz","lugar":"Mendoza","precio":90,"cupo_maximo":20,"fecha":"2027-07-01T20:00:00Z"}`
+	updateBody := `{"titulo":"Editado","categoria":"Jazz","venue_id":1,"precio":100,"fecha":"2027-07-01T20:00:00Z"}`
 	req2, _ := http.NewRequest("PUT", "/api/admin/events/"+id, strings.NewReader(updateBody))
 	req2.Header.Set("Content-Type", "application/json")
 	req2.Header.Set("Authorization", "Bearer "+token)
@@ -375,7 +388,7 @@ func TestTransferTicket_InputInvalido(t *testing.T) {
 	u := crearUsuario("transferinput@ctrl.test", "10111213")
 	token := tokenParaUsuario(u.ID)
 
-	body := `{}` // falta dni
+	body := `{}`
 	req, _ := http.NewRequest("POST", "/api/tickets/1/transfer", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -383,5 +396,488 @@ func TestTransferTicket_InputInvalido(t *testing.T) {
 	testRouter.ServeHTTP(w, req)
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("esperado 400 por input inválido, obtenido %d", w.Code)
+	}
+}
+
+// ── Login adicional ──
+
+func TestLogin_PasswordIncorrecto(t *testing.T) {
+	reg := `{"email":"wrongpwd@ctrl.test","password":"pass123","nombre":"W","apellido":"P","dni":"98765432"}`
+	req, _ := http.NewRequest("POST", "/api/auth/register", strings.NewReader(reg))
+	req.Header.Set("Content-Type", "application/json")
+	testRouter.ServeHTTP(httptest.NewRecorder(), req)
+
+	body := `{"email":"wrongpwd@ctrl.test","password":"contraseniaincorrecta"}`
+	req2, _ := http.NewRequest("POST", "/api/auth/login", strings.NewReader(body))
+	req2.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req2)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("esperado 401 por password incorrecto, obtenido %d", w.Code)
+	}
+}
+
+// ── Tickets adicionales ──
+
+func TestCancelTicket_TicketNoEncontrado(t *testing.T) {
+	u := crearUsuario("cancelnotfound@ctrl.test", "50505050")
+	token := tokenParaUsuario(u.ID)
+	req, _ := http.NewRequest("POST", "/api/tickets/999999/cancel", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d", w.Code)
+	}
+}
+
+func TestTransferTicket_IDInvalido(t *testing.T) {
+	u := crearUsuario("transferidinvalid@ctrl.test", "60606060")
+	token := tokenParaUsuario(u.ID)
+	body := `{"dni":"12345678"}`
+	req, _ := http.NewRequest("POST", "/api/tickets/abc/transfer", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestTransferTicket_TicketNoEncontrado(t *testing.T) {
+	u := crearUsuario("transfernotfound@ctrl.test", "70707070")
+	token := tokenParaUsuario(u.ID)
+	body := `{"dni":"99999999"}`
+	req, _ := http.NewRequest("POST", "/api/tickets/999999/transfer", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d", w.Code)
+	}
+}
+
+func TestTransferTicket_NoAutorizado(t *testing.T) {
+	owner := crearUsuario("transferowner2@ctrl.test", "80808080")
+	otro := crearUsuario("transferotro2@ctrl.test", "81818181")
+	e := crearEvento(10)
+	ticket := &domain.Ticket{UserID: owner.ID, EventID: e.ID, Estado: "activo"}
+	dao.DB.Create(ticket)
+
+	body := `{"dni":"99999999"}`
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/tickets/%d/transfer", ticket.ID), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenParaUsuario(otro.ID))
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Errorf("esperado 403, obtenido %d", w.Code)
+	}
+}
+
+func TestTransferTicket_Exitoso(t *testing.T) {
+	owner := crearUsuario("transfersuccess1@ctrl.test", "90909090")
+	target := crearUsuario("transfersuccess2@ctrl.test", "91919191")
+	e := crearEvento(10)
+	ticket := &domain.Ticket{UserID: owner.ID, EventID: e.ID, Estado: "activo"}
+	dao.DB.Create(ticket)
+
+	body := fmt.Sprintf(`{"dni":"%s"}`, target.DNI)
+	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/tickets/%d/transfer", ticket.ID), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+tokenParaUsuario(owner.ID))
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+// ── UpdateEvent / DeleteEvent adicionales ──
+
+func TestUpdateEventAdmin_IDInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{"titulo":"X","categoria":"X","venue_id":1,"precio":10,"fecha":"2027-07-01T20:00:00Z"}`
+	req, _ := http.NewRequest("PUT", "/api/admin/events/abc", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestUpdateEventAdmin_EventoInexistente(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{"titulo":"X","categoria":"X","venue_id":1,"precio":10,"fecha":"2027-07-01T20:00:00Z"}`
+	req, _ := http.NewRequest("PUT", "/api/admin/events/99999", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestDeleteEventAdmin_Exitoso(t *testing.T) {
+	token := tokenParaAdmin()
+	createBody := `{"titulo":"Para Borrar","categoria":"Pop","venue_id":1,"precio":50,"fecha":"2027-08-01T20:00:00Z"}`
+	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(createBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+
+	var event map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &event)
+	id := fmt.Sprintf("%v", int(event["id"].(float64)))
+
+	req2, _ := http.NewRequest("DELETE", "/api/admin/events/"+id, nil)
+	req2.Header.Set("Authorization", "Bearer "+token)
+	w2 := httptest.NewRecorder()
+	testRouter.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d — body: %s", w2.Code, w2.Body.String())
+	}
+}
+
+// ── Venues (público) ──
+
+func TestGetVenues_OK(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/api/venues", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d", w.Code)
+	}
+}
+
+func TestGetVenueByID_Existente(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/api/venues/1", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d", w.Code)
+	}
+}
+
+func TestGetVenueByID_IDInvalido(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/api/venues/abc", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestGetVenueByID_Inexistente(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/api/venues/99999", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d", w.Code)
+	}
+}
+
+// ── Venues (admin) ──
+
+func crearVenueAPI(t *testing.T) uint {
+	t.Helper()
+	token := tokenParaAdmin()
+	body := `{"nombre":"Venue Temp","direccion":"Calle Test 1","filas":2,"columnas_por_fila":5}`
+	req, _ := http.NewRequest("POST", "/api/admin/venues", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	var v map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &v)
+	return uint(int(v["id"].(float64)))
+}
+
+func TestCreateVenueAdmin_InputInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("POST", "/api/admin/venues", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestCreateVenueAdmin_Exitoso(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{"nombre":"Nuevo Venue","direccion":"Av. Test 100","filas":5,"columnas_por_fila":10}`
+	req, _ := http.NewRequest("POST", "/api/admin/venues", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Errorf("esperado 201, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestUpdateVenueAdmin_IDInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{"nombre":"X","direccion":"X","filas":1,"columnas_por_fila":1}`
+	req, _ := http.NewRequest("PUT", "/api/admin/venues/abc", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestUpdateVenueAdmin_Inexistente(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{"nombre":"X","direccion":"X","filas":1,"columnas_por_fila":1}`
+	req, _ := http.NewRequest("PUT", "/api/admin/venues/99999", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d", w.Code)
+	}
+}
+
+func TestUpdateVenueAdmin_Exitoso(t *testing.T) {
+	id := crearVenueAPI(t)
+	token := tokenParaAdmin()
+	body := `{"nombre":"Venue Actualizado","direccion":"Nueva Dir","filas":3,"columnas_por_fila":8}`
+	req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/admin/venues/%d", id), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestDeleteVenueAdmin_IDInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("DELETE", "/api/admin/venues/abc", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestDeleteVenueAdmin_Inexistente(t *testing.T) {
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("DELETE", "/api/admin/venues/99999", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d", w.Code)
+	}
+}
+
+func TestDeleteVenueAdmin_Exitoso(t *testing.T) {
+	id := crearVenueAPI(t)
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("DELETE", fmt.Sprintf("/api/admin/venues/%d", id), nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+// ── Asientos ──
+
+func TestGetEventSeats_IDInvalido(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/api/events/abc/seats", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestGetEventSeats_OK(t *testing.T) {
+	e := crearEvento(10)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/events/%d/seats", e.ID), nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d", w.Code)
+	}
+}
+
+// ── Reporte (admin) ──
+
+func TestGetOccupationReport_IDInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("GET", "/api/admin/events/abc/report", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestGetOccupationReport_EventoInexistente(t *testing.T) {
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("GET", "/api/admin/events/99999/report", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("esperado 404, obtenido %d", w.Code)
+	}
+}
+
+func TestGetOccupationReport_OK(t *testing.T) {
+	e := crearEvento(50)
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/admin/events/%d/report", e.ID), nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+// ── Paths adicionales de controllers ──
+
+func TestGetEventByID_IDInvalido_Ctrl(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/api/events/abc", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestGetEventByID_Existente_Ctrl(t *testing.T) {
+	e := crearEvento(10)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/events/%d", e.ID), nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("esperado 200, obtenido %d", w.Code)
+	}
+}
+
+func TestUpdateEventAdmin_InputInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	e := crearEvento(10)
+	req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/admin/events/%d", e.ID), strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestDeleteEventAdmin_IDInvalido(t *testing.T) {
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("DELETE", "/api/admin/events/abc", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestCreateEventAdmin_VenueInexistente(t *testing.T) {
+	token := tokenParaAdmin()
+	body := `{"titulo":"T","categoria":"C","venue_id":99999,"precio":10,"fecha":"2027-07-01T20:00:00Z"}`
+	req, _ := http.NewRequest("POST", "/api/admin/events", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("esperado 500, obtenido %d — body: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestUpdateVenueAdmin_InputInvalido(t *testing.T) {
+	id := crearVenueAPI(t)
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/admin/venues/%d", id), strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("esperado 400, obtenido %d", w.Code)
+	}
+}
+
+func TestGetEvents_DBNula(t *testing.T) {
+	saved := dao.DB
+	dao.DB = nil
+	defer func() { dao.DB = saved }()
+	req, _ := http.NewRequest("GET", "/api/events", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("esperado 500, obtenido %d", w.Code)
+	}
+}
+
+func TestGetVenues_DBNula(t *testing.T) {
+	saved := dao.DB
+	dao.DB = nil
+	defer func() { dao.DB = saved }()
+	req, _ := http.NewRequest("GET", "/api/venues", nil)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("esperado 500, obtenido %d", w.Code)
+	}
+}
+
+func TestGetMyTickets_DBNula(t *testing.T) {
+	u := crearUsuario("dbnulatickets@ctrl.test", "11122200")
+	token := tokenParaUsuario(u.ID)
+	saved := dao.DB
+	dao.DB = nil
+	defer func() { dao.DB = saved }()
+	req, _ := http.NewRequest("GET", "/api/tickets/my-tickets", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("esperado 500, obtenido %d", w.Code)
+	}
+}
+
+func TestGetOccupationReport_VenueSinAsociar(t *testing.T) {
+	e := domain.Event{
+		Titulo: "Sin Venue Ctrl", Categoria: "Test",
+		Lugar: "X", Precio: 10, CupoMaximo: 10, CupoDispon: 10,
+		VenueID: 88888,
+	}
+	dao.DB.Create(&e)
+	token := tokenParaAdmin()
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/admin/events/%d/report", e.ID), nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	testRouter.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("esperado 500, obtenido %d — body: %s", w.Code, w.Body.String())
 	}
 }

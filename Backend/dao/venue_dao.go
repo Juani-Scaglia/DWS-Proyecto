@@ -8,11 +8,17 @@ import (
 )
 
 func GetAllVenues() ([]models.Venue, error) {
+	if DB == nil {
+		return nil, errors.New(errDBNula)
+	}
 	var venues []models.Venue
 	return venues, DB.Find(&venues).Error
 }
 
 func GetVenueByID(id uint) (models.Venue, error) {
+	if DB == nil {
+		return models.Venue{}, errors.New(errDBNula)
+	}
 	var venue models.Venue
 	err := DB.First(&venue, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -22,6 +28,9 @@ func GetVenueByID(id uint) (models.Venue, error) {
 }
 
 func CreateVenue(venue *models.Venue) error {
+	if DB == nil {
+		return errors.New(errDBNula)
+	}
 	return DB.Create(venue).Error
 }
 

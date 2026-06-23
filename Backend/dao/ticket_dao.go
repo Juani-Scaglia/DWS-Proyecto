@@ -31,12 +31,18 @@ func IncrementCupo(tx *gorm.DB, eventID uint) error {
 }
 
 func GetTicketsByUserID(userID uint) ([]models.Ticket, error) {
+	if DB == nil {
+		return nil, errors.New(errDBNula)
+	}
 	var tickets []models.Ticket
 	err := DB.Preload("Event").Preload("Seat").Where("user_id = ?", userID).Find(&tickets).Error
 	return tickets, err
 }
 
 func GetTicketByID(id uint) (models.Ticket, error) {
+	if DB == nil {
+		return models.Ticket{}, errors.New(errDBNula)
+	}
 	var ticket models.Ticket
 	err := DB.First(&ticket, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -54,6 +60,9 @@ func TransferTicketOwner(tx *gorm.DB, ticketID uint, newUserID uint) error {
 }
 
 func GetUserByDNI(dni string) (models.User, error) {
+	if DB == nil {
+		return models.User{}, errors.New(errDBNula)
+	}
 	var user models.User
 	err := DB.Where("dni = ?", dni).First(&user).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -62,22 +71,6 @@ func GetUserByDNI(dni string) (models.User, error) {
 	return user, err
 }
 
-func OccupySeats(tx *gorm.DB, seatIDs []uint) error {
-	return tx.Model(&models.Seat{}).Where("id IN ?", seatIDs).Update("ocupado", true).Error
-}
-
-func FreeSeat(tx *gorm.DB, seatID uint) error {
-	return tx.Model(&models.Seat{}).Where("id = ?", seatID).Update("ocupado", false).Error
-}
-
-func GetSeatByID(id uint) (models.Seat, error) {
-	var seat models.Seat
-	err := DB.First(&seat, id).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return seat, errors.New("asiento no encontrado")
-	}
-	return seat, err
-}
 
 func GetActiveTicketCountByEventAndUser(userID, eventID uint) (int64, error) {
 	var count int64

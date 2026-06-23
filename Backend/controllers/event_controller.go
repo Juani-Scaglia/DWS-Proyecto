@@ -75,6 +75,10 @@ func UpdateEventAdmin(c *gin.Context) {
 	}
 	event, err := services.UpdateEvent(uint(id), input)
 	if err != nil {
+		if err.Error() == "evento no encontrado" {
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
 		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -88,6 +92,10 @@ func DeleteEventAdmin(c *gin.Context) {
 		return
 	}
 	if err := services.DeleteEvent(uint(id)); err != nil {
+		if err.Error() == "evento no encontrado" {
+			utils.ErrorResponse(c, http.StatusNotFound, err.Error())
+			return
+		}
 		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
