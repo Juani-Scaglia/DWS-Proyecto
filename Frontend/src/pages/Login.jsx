@@ -3,10 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { login } from "../services/authService";
 
 function Login({ onLogin }) {
-  const [email, setEmail]       = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -27,52 +27,26 @@ function Login({ onLogin }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-card__logo">TH</div>
-        <h1 className="auth-card__title">Bienvenido de vuelta</h1>
-        <p className="auth-card__subtitle">Ingresá a tu cuenta para continuar</p>
+        <h1 className="auth-card__title">Iniciar sesión</h1>
 
         {error && <div className="alert alert--error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="email">Email</label>
-            <input
-              id="email"
-              className="form-input"
-              type="email"
-              placeholder="tu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
+            <label className="form-label">Email</label>
+            <input className="form-input" type="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="form-group">
-            <label className="form-label" htmlFor="password">Contraseña</label>
-            <input
-              id="password"
-              className="form-input"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
+            <label className="form-label">Contraseña</label>
+            <input className="form-input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
-          <button
-            type="submit"
-            className="btn btn--primary btn--full btn--lg"
-            style={{ marginTop: 8 }}
-            disabled={loading}
-          >
+          <button type="submit" className="btn btn--primary btn--full btn--lg" disabled={loading} style={{ marginTop: 8 }}>
             {loading ? "Ingresando..." : "Iniciar sesión"}
           </button>
         </form>
 
-        <p style={{ textAlign: "center", marginTop: 24, fontSize: 14, color: "var(--text-muted)" }}>
-          ¿No tenés cuenta?{" "}
-          <Link to="/register">Registrate gratis</Link>
+        <p style={{ textAlign: "center", marginTop: 24, fontSize: 14 }}>
+          ¿No tenés cuenta? <Link to="/register">Registrate</Link>
         </p>
       </div>
     </div>

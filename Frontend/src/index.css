@@ -1091,3 +1091,100 @@ a:not([class]):hover { text-decoration: underline; }
   0%, 100% { opacity: 0.38; }
   50%       { opacity: 0.9;  }
 }
+
+/* ===================== ADMIN TABS ===================== */
+.admin-tabs { display: flex; gap: 4px; margin-bottom: 4px; border-bottom: 2px solid var(--border); }
+.admin-tab { padding: 8px 20px; border: none; background: none; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: .15s; font-family: inherit; }
+.admin-tab--active { color: var(--accent); border-bottom-color: var(--accent); }
+.admin-tab:hover:not(.admin-tab--active) { color: var(--text-heading); }
+.form-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* ===================== EVENT IMAGE ===================== */
+.event-detail__img { width: 100%; max-height: 350px; object-fit: cover; border-radius: var(--radius-lg); }
+.event-card__img { width: 100%; height: 180px; object-fit: cover; }
+.event-card__cupo { font-size: 12px; color: var(--text-muted); }
+
+/* ===================== TICKET CARD META ===================== */
+.ticket-card__meta { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* ===================== SEAT MAP ===================== */
+.seatmap { margin: 20px 0; overflow-x: auto; }
+.seatmap__stage { text-align: center; background: var(--accent-light); color: var(--accent-text); padding: 8px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; font-size: 13px; font-weight: 600; letter-spacing: 2px; }
+.seatmap__grid { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; background: var(--bg-card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+.seatmap__row { display: flex; align-items: center; gap: 4px; }
+.seatmap__row-label { width: 20px; font-size: 12px; font-weight: 700; color: var(--text-heading); text-align: center; }
+.seatmap__seat { width: 28px; height: 28px; border: none; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; transition: .15s; display: flex; align-items: center; justify-content: center; }
+.seatmap__seat--free { background: #d1fae5; color: #065f46; }
+.seatmap__seat--free:hover { background: #a7f3d0; transform: scale(1.1); }
+.seatmap__seat--selected { background: var(--accent); color: #fff; transform: scale(1.1); box-shadow: 0 0 8px rgba(124,58,237,.4); }
+.seatmap__seat--taken { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+.seatmap__legend { display: flex; gap: 16px; justify-content: center; margin-top: 12px; font-size: 13px; color: var(--text-muted); }
+.seatmap__dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+.seatmap__dot--free { background: #d1fae5; }
+.seatmap__dot--selected { background: var(--accent); }
+.seatmap__dot--taken { background: var(--border); }
+
+@media (prefers-color-scheme: dark) {
+  .seatmap__seat--free { background: #064e3b; color: #6ee7b7; }
+  .seatmap__seat--free:hover { background: #065f46; }
+  .seatmap__seat--taken { background: #1f1a2e; color: #4b4870; }
+  .seatmap__dot--free { background: #064e3b; }
+  .seatmap__dot--taken { background: #1f1a2e; }
+}
+
+/* ===================== STADIUM MAP ===================== */
+.stadium { display: flex; flex-direction: column; gap: 8px; max-width: 600px; margin: 0 auto; }
+.stadium__middle { display: flex; gap: 8px; align-items: stretch; }
+.stadium__field { flex: 1; background: #166534; border-radius: var(--radius-sm); min-height: 120px; display: flex; align-items: center; justify-content: center; position: relative; border: 2px dashed #22c55e; }
+.stadium__bottom-row { display: flex; gap: 8px; }
+.stadium__bottom-row > * { flex: 1; }
+
+.sector-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 12px; background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: all .2s; text-align: center; width: 100%; font-family: inherit; }
+.sector-btn:hover { border-color: var(--accent); transform: scale(1.02); box-shadow: var(--shadow); }
+.sector-btn--top, .sector-btn--bottom { width: 100%; }
+.sector-btn--left, .sector-btn--right { min-width: 120px; justify-content: center; }
+.sector-btn--field { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
+.sector-btn--field:hover { border-color: #fff; }
+.sector-btn--field .sector-btn__name { color: #fff; }
+.sector-btn--field .sector-btn__info { color: rgba(255,255,255,.7); }
+.sector-btn__name { font-size: 13px; font-weight: 700; color: var(--text-heading); }
+.sector-btn__info { font-size: 11px; color: var(--text-muted); }
+.sector-btn__bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.sector-btn__bar-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+.sector-btn__badge { font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-light); padding: 1px 6px; border-radius: var(--radius-pill); }
+
+@media (prefers-color-scheme: dark) {
+  .stadium__field { background: #052e16; border-color: #166534; }
+}
+@media (max-width: 640px) {
+  .sector-btn--left, .sector-btn--right { min-width: 80px; }
+  .sector-btn { padding: 10px 8px; }
+  .sector-btn__name { font-size: 11px; }
+}
+
+/* ===================== PURCHASE BAR ===================== */
+.purchase-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); margin-top: 20px; position: sticky; bottom: 16px; box-shadow: var(--shadow-lg); }
+.purchase-bar__total { font-size: 22px; font-weight: 700; color: var(--accent); }
+
+@media (max-width: 640px) {
+  .purchase-bar { flex-direction: column; gap: 12px; text-align: center; }
+  .seatmap__seat { width: 22px; height: 22px; font-size: 8px; }
+}
+
+/* ===================== REPORTS ===================== */
+.reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.report-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-sm); }
+.report-card__title { font-size: 16px; font-weight: 600; color: var(--text-heading); margin-bottom: 2px; }
+.report-card__venue { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
+.report-card__bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.report-card__bar { flex: 1; height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; }
+.report-card__bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a78bfa); border-radius: 6px; transition: width .5s; }
+.report-card__pct { font-size: 14px; font-weight: 700; color: var(--accent); min-width: 45px; }
+.report-card__stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+.report-card__stat-val { display: block; font-size: 18px; font-weight: 700; color: var(--text-heading); }
+.report-card__stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+
+@media (max-width: 640px) {
+  .reports-grid { grid-template-columns: 1fr; }
+  .report-card__stats { grid-template-columns: repeat(2, 1fr); }
+}

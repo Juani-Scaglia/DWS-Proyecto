@@ -11,7 +11,8 @@ import (
 )
 
 type PurchaseInput struct {
-	EventID uint `json:"event_id" binding:"required"`
+	EventID uint   `json:"event_id" binding:"required"`
+	SeatIDs []uint `json:"seat_ids" binding:"required,min=1"`
 }
 
 type TransferInput struct {
@@ -19,7 +20,8 @@ type TransferInput struct {
 }
 
 func PurchaseTicket(c *gin.Context) {
-	userID := c.GetUint("user_id")
+	userIDVal, _ := c.Get("user_id")
+	userID := uint(userIDVal.(float64))
 
 	var input PurchaseInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -27,33 +29,29 @@ func PurchaseTicket(c *gin.Context) {
 		return
 	}
 
-	ticket, err := services.PurchaseTicket(userID, input.EventID)
+	tickets, err := services.PurchaseTickets(userID, input.EventID, input.SeatIDs)
 	if err != nil {
-		if err.Error() == "sin cupo disponible" {
-			utils.ErrorResponse(c, http.StatusConflict, err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusCreated, ticket)
+	utils.SuccessResponse(c, http.StatusCreated, tickets)
 }
 
 func GetMyTickets(c *gin.Context) {
-	userID := c.GetUint("user_id")
+	userIDVal, _ := c.Get("user_id")
+	userID := uint(userIDVal.(float64))
 
 	tickets, err := services.GetMyTickets(userID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	utils.SuccessResponse(c, http.StatusOK, tickets)
 }
 
 func CancelTicket(c *gin.Context) {
-	userID := c.GetUint("user_id")
+	userIDVal, _ := c.Get("user_id")
+	userID := uint(userIDVal.(float64))
 
 	ticketID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -72,12 +70,12 @@ func CancelTicket(c *gin.Context) {
 		}
 		return
 	}
-
 	utils.SuccessResponse(c, http.StatusOK, gin.H{"message": "ticket cancelado"})
 }
 
 func TransferTicket(c *gin.Context) {
-	userID := c.GetUint("user_id")
+	userIDVal, _ := c.Get("user_id")
+	userID := uint(userIDVal.(float64))
 
 	ticketID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -102,6 +100,19 @@ func TransferTicket(c *gin.Context) {
 		}
 		return
 	}
-
 	utils.SuccessResponse(c, http.StatusOK, gin.H{"message": "ticket transferido"})
+}
+
+func GetEventReport(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "ID inválido")
+		return
+	}
+	report, err := services.GetEventReport(uint(id))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusNotFound, err.Error())
+		return
+	}
+	utils.SuccessResponse(c, http.StatusOK, report)
 }

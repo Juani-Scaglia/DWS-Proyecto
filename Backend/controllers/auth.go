@@ -51,9 +51,9 @@ func LoginUser(c *gin.Context) {
 		"user": gin.H{
 			"id":       user.ID,
 			"email":    user.Email,
-			"dni":      user.DNI,
 			"nombre":   user.Nombre,
 			"apellido": user.Apellido,
+			"dni":      user.DNI,
 			"rol":      user.Rol,
 		},
 	})

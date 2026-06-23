@@ -10,13 +10,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const errEventoIDInvalido = "ID de evento inválido"
-
 func GetEvents(c *gin.Context) {
 	category := c.Query("category")
 	events, err := services.GetAllEvents(category)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "No se pudieron obtener los eventos: "+err.Error())
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	utils.SuccessResponse(c, http.StatusOK, events)
@@ -25,7 +23,7 @@ func GetEvents(c *gin.Context) {
 func GetEventByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, errEventoIDInvalido)
+		utils.ErrorResponse(c, http.StatusBadRequest, "ID de evento inválido")
 		return
 	}
 	event, err := services.GetEventByID(uint(id))
@@ -34,6 +32,20 @@ func GetEventByID(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, http.StatusOK, event)
+}
+
+func GetEventSeats(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "ID de evento inválido")
+		return
+	}
+	seats, err := services.GetSeatsByEventID(uint(id))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	utils.SuccessResponse(c, http.StatusOK, seats)
 }
 
 func CreateEventAdmin(c *gin.Context) {
@@ -53,7 +65,7 @@ func CreateEventAdmin(c *gin.Context) {
 func UpdateEventAdmin(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, errEventoIDInvalido)
+		utils.ErrorResponse(c, http.StatusBadRequest, "ID inválido")
 		return
 	}
 	var input services.EventInput
@@ -63,11 +75,7 @@ func UpdateEventAdmin(c *gin.Context) {
 	}
 	event, err := services.UpdateEvent(uint(id), input)
 	if err != nil {
-		if err.Error() == "evento no encontrado" {
-			utils.ErrorResponse(c, http.StatusNotFound, err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	utils.SuccessResponse(c, http.StatusOK, event)
@@ -76,15 +84,11 @@ func UpdateEventAdmin(c *gin.Context) {
 func DeleteEventAdmin(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, errEventoIDInvalido)
+		utils.ErrorResponse(c, http.StatusBadRequest, "ID inválido")
 		return
 	}
 	if err := services.DeleteEvent(uint(id)); err != nil {
-		if err.Error() == "evento no encontrado" {
-			utils.ErrorResponse(c, http.StatusNotFound, err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	utils.SuccessResponse(c, http.StatusOK, gin.H{"message": "evento eliminado"})

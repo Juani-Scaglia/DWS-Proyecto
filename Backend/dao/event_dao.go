@@ -7,48 +7,25 @@ import (
 	"gorm.io/gorm"
 )
 
-const errDBNula = "base de datos no inicializada"
-
 func GetAllEvents(category string) ([]models.Event, error) {
-	if DB == nil {
-		return nil, errors.New(errDBNula)
-	}
 	var events []models.Event
-
+	q := DB.Preload("Venue")
 	if category != "" {
-		result := DB.Where("categoria = ?", category).Find(&events)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		return events, nil
+		q = q.Where("categoria = ?", category)
 	}
-
-	result := DB.Find(&events)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return events, nil
+	return events, q.Find(&events).Error
 }
 
 func GetEventByID(id uint) (models.Event, error) {
-	if DB == nil {
-		return models.Event{}, errors.New(errDBNula)
-	}
 	var event models.Event
-	result := DB.First(&event, id)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return event, errors.New("evento no encontrado")
-		}
-		return event, result.Error
+	err := DB.Preload("Venue").First(&event, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return event, errors.New("evento no encontrado")
 	}
-	return event, nil
+	return event, err
 }
 
 func CreateEvent(event *models.Event) error {
-	if DB == nil {
-		return errors.New(errDBNula)
-	}
 	return DB.Create(event).Error
 }
 

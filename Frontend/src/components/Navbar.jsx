@@ -10,9 +10,7 @@ function Navbar({ user, onLogout }) {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="navbar__logo">
-        TicketHub
-      </Link>
+      <Link to="/" className="navbar__logo">TicketHub</Link>
 
       <div className="navbar__links">
         <Link to="/" className="navbar__link">Eventos</Link>
