@@ -1,84 +1,65 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { register } from "../services/authService";
 
-function Register() {
-  const [nombre, setNombre] = useState("");
-  const [apellido, setApellido] = useState("");
-  const [dni, setDNI] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function Register() {
+  const [form, setForm] = useState({ nombre: "", apellido: "", email: "", password: "", dni: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  try {
-    await register({
-      nombre,
-      apellido,
-      email,
-      password,
-      dni
-    });
-
-    alert("Usuario registrado");
-  } catch (error) {
-    alert("Error al registrar usuario");
-  }
-};
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      await register(form);
+      navigate("/login");
+    } catch (err) {
+      setError(err.response?.data?.error || "Error al registrarse.");
+    } finally { setLoading(false); }
+  };
 
   return (
-    <div>
-      <h1>Registro</h1>
+    <div className="auth-page">
+      <div className="auth-card" style={{ maxWidth: 460 }}>
+        <h1 className="auth-card__title">Crear cuenta</h1>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="Nombre"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-        />
+        {error && <div className="alert alert--error">{error}</div>}
 
-        <br />
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Nombre</label>
+              <input className="form-input" name="nombre" placeholder="Juan" value={form.nombre} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Apellido</label>
+              <input className="form-input" name="apellido" placeholder="Pérez" value={form.apellido} onChange={handleChange} required />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input className="form-input" name="email" type="email" placeholder="tu@email.com" value={form.email} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Contraseña</label>
+            <input className="form-input" name="password" type="password" placeholder="Mínimo 6 caracteres" value={form.password} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">DNI</label>
+            <input className="form-input" name="dni" placeholder="12345678" value={form.dni} onChange={handleChange} required />
+          </div>
+          <button type="submit" className="btn btn--primary btn--full btn--lg" disabled={loading} style={{ marginTop: 8 }}>
+            {loading ? "Registrando..." : "Crear cuenta"}
+          </button>
+        </form>
 
-        <input
-          placeholder="Apellido"
-          value={apellido}
-          onChange={(e) => setApellido(e.target.value)}
-        />
-
-        <br />
-
-        <input
-          placeholder="DNI"
-          value={dni}
-          onChange={(e) => setDNI(e.target.value)}
-        />
-
-        <br />
-
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <br />
-
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <br />
-
-        <button type="submit">
-          Registrarse
-        </button>
-      </form>
+        <p style={{ textAlign: "center", marginTop: 24, fontSize: 14 }}>
+          ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link>
+        </p>
+      </div>
     </div>
   );
 }
-
-export default Register;

@@ -2,16 +2,28 @@ package services
 
 import (
 	"errors"
+	"math"
 
 	"backend/dao"
 	domain "backend/domain/models"
 )
 
 type VenueInput struct {
-	Nombre          string `json:"nombre" binding:"required"`
-	Direccion       string `json:"direccion" binding:"required"`
-	Filas           int    `json:"filas" binding:"required,gt=0,max=26"`
-	ColumnasPorFila int    `json:"columnas_por_fila" binding:"required,gt=0"`
+	Nombre    string `json:"nombre" binding:"required"`
+	Direccion string `json:"direccion" binding:"required"`
+	Capacidad int    `json:"capacidad" binding:"required,gt=0"`
+}
+
+func calcularGrilla(capacidad int) (int, int) {
+	cols := int(math.Ceil(math.Sqrt(float64(capacidad))))
+	if cols > 50 {
+		cols = 50
+	}
+	if cols < 1 {
+		cols = 1
+	}
+	filas := int(math.Ceil(float64(capacidad) / float64(cols)))
+	return filas, cols
 }
 
 func GetAllVenues() ([]domain.Venue, error) {
@@ -23,12 +35,13 @@ func GetVenueByID(id uint) (domain.Venue, error) {
 }
 
 func CreateVenue(input VenueInput) (*domain.Venue, error) {
+	filas, cols := calcularGrilla(input.Capacidad)
 	venue := &domain.Venue{
 		Nombre:          input.Nombre,
 		Direccion:       input.Direccion,
-		Filas:           input.Filas,
-		ColumnasPorFila: input.ColumnasPorFila,
-		Capacidad:       input.Filas * input.ColumnasPorFila,
+		Filas:           filas,
+		ColumnasPorFila: cols,
+		Capacidad:       input.Capacidad,
 	}
 	if err := dao.CreateVenue(venue); err != nil {
 		return nil, err
@@ -47,12 +60,13 @@ func UpdateVenue(id uint, input VenueInput) (*domain.Venue, error) {
 		return nil, errors.New("no se puede modificar un establecimiento que tiene eventos asociados")
 	}
 
+	filas, cols := calcularGrilla(input.Capacidad)
 	fields := map[string]interface{}{
 		"nombre":            input.Nombre,
 		"direccion":         input.Direccion,
-		"filas":             input.Filas,
-		"columnas_por_fila": input.ColumnasPorFila,
-		"capacidad":         input.Filas * input.ColumnasPorFila,
+		"filas":             filas,
+		"columnas_por_fila": cols,
+		"capacidad":         input.Capacidad,
 	}
 	if err := dao.UpdateVenue(id, fields); err != nil {
 		return nil, err

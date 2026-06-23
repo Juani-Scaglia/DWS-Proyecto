@@ -1,6 +1,8 @@
 package services
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"os"
 	"time"
@@ -9,7 +11,6 @@ import (
 	domain "backend/domain/models"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -26,20 +27,20 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
+func hashPassword(password string) string {
+	sum := sha256.Sum256([]byte(password))
+	return hex.EncodeToString(sum[:])
+}
+
 func Register(input RegisterInput) (*domain.User, error) {
 	var existing domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
-		return nil, errors.New("el email ya está registrado")
-	}
-
-	hashed, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
+		return nil, errors.New("el email ya esta registrado")
 	}
 
 	user := domain.User{
 		Email:    input.Email,
-		Password: string(hashed),
+		Password: hashPassword(input.Password),
 		Nombre:   input.Nombre,
 		Apellido: input.Apellido,
 		Rol:      "cliente",
@@ -57,13 +58,13 @@ func Login(input LoginInput) (string, *domain.User, error) {
 	var user domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", nil, errors.New("credenciales inválidas")
+			return "", nil, errors.New("credenciales invalidas")
 		}
 		return "", nil, err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		return "", nil, errors.New("credenciales inválidas")
+	if user.Password != hashPassword(input.Password) {
+		return "", nil, errors.New("credenciales invalidas")
 	}
 
 	token, err := generateJWT(user)
@@ -83,6 +84,7 @@ func generateJWT(user domain.User) (string, error) {
 		"user_id": user.ID,
 		"email":   user.Email,
 		"rol":     user.Rol,
+		"dni":     user.DNI,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	}
 

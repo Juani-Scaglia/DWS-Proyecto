@@ -61,6 +61,7 @@ func main() {
 			admin.POST("/venues", controllers.CreateVenueAdmin)
 			admin.PUT(routeVenueByID, controllers.UpdateVenueAdmin)
 			admin.DELETE(routeVenueByID, controllers.DeleteVenueAdmin)
+			admin.GET("/events/:id/report", controllers.GetEventReport)
 		}
 	}
 

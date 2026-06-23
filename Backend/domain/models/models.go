@@ -34,6 +34,7 @@ type Event struct {
 	Fecha       time.Time `gorm:"not null" json:"fecha"`
 	Lugar       string    `gorm:"type:varchar(150);not null" json:"lugar"`
 	Precio      float64   `gorm:"type:decimal(10,2);not null" json:"precio"`
+	Imagen      string    `gorm:"type:varchar(500)" json:"imagen"`
 	CupoMaximo  int       `gorm:"not null" json:"cupo_maximo"`
 	CupoDispon  int       `gorm:"column:cupo_disponible;not null" json:"cupo_disponible"`
 	VenueID     uint      `gorm:"not null;default:0" json:"venue_id"`

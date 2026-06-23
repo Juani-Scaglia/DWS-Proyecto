@@ -5,11 +5,12 @@ import { es } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 import { getEvents, createEvent, updateEvent, deleteEvent } from "../services/eventService";
 import { getVenues, createVenue, updateVenue, deleteVenue } from "../services/venueService";
+import { getEventReport } from "../services/ticketService";
 
 registerLocale("es", es);
 
 const EMPTY_EVENT = { titulo: "", descripcion: "", categoria: "Recitales", precio: "", venue_id: "" };
-const EMPTY_VENUE = { nombre: "", direccion: "", filas: "", columnas_por_fila: "" };
+const EMPTY_VENUE = { nombre: "", direccion: "", capacidad: "" };
 
 const todayStart = new Date();
 todayStart.setHours(0, 0, 0, 0);
@@ -31,6 +32,7 @@ export default function AdminPanel({ user }) {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [msg, setMsg] = useState({ type: "", text: "" });
+  const [reports, setReports] = useState({});
 
   useEffect(() => {
     if (!user || user.rol !== "admin") { navigate("/"); return; }
@@ -43,6 +45,17 @@ export default function AdminPanel({ user }) {
       .then(([ev, vn]) => { setEvents(ev.data); setVenues(vn.data); })
       .catch(() => flash("error", "No se pudieron cargar los datos"))
       .finally(() => setFetching(false));
+  };
+
+  const loadReports = async (evts) => {
+    const reps = {};
+    for (const ev of evts) {
+      try {
+        const res = await getEventReport(ev.id);
+        reps[ev.id] = res.data;
+      } catch { /* skip */ }
+    }
+    setReports(reps);
   };
 
   const flash = (type, text) => setMsg({ type, text });
@@ -107,7 +120,7 @@ export default function AdminPanel({ user }) {
     e.preventDefault(); clearMsg(); setLoading(true);
     const payload = {
       nombre: venueForm.nombre, direccion: venueForm.direccion,
-      filas: parseInt(venueForm.filas), columnas_por_fila: parseInt(venueForm.columnas_por_fila),
+      capacidad: parseInt(venueForm.capacidad),
     };
     try {
       if (editingVenue) {
@@ -125,7 +138,7 @@ export default function AdminPanel({ user }) {
 
   const startEditVenue = (v) => {
     setEditingVenue(v);
-    setVenueForm({ nombre: v.nombre, direccion: v.direccion, filas: String(v.filas), columnas_por_fila: String(v.columnas_por_fila) });
+    setVenueForm({ nombre: v.nombre, direccion: v.direccion, capacidad: String(v.capacidad) });
     setTab("venues");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -153,6 +166,7 @@ export default function AdminPanel({ user }) {
       <div className="admin-tabs">
         <button className={`admin-tab${tab === "events" ? " admin-tab--active" : ""}`} onClick={() => setTab("events")}>Eventos</button>
         <button className={`admin-tab${tab === "venues" ? " admin-tab--active" : ""}`} onClick={() => setTab("venues")}>Establecimientos</button>
+        <button className={`admin-tab${tab === "reports" ? " admin-tab--active" : ""}`} onClick={() => { setTab("reports"); loadReports(events); }}>Reportes</button>
       </div>
 
       {/* ─── TAB EVENTOS ─── */}
@@ -200,11 +214,11 @@ export default function AdminPanel({ user }) {
                   <select className="form-input" name="venue_id" value={eventForm.venue_id} onChange={handleEF} required>
                     <option value="">— Seleccioná —</option>
                     {venues.map((v) => (
-                      <option key={v.id} value={v.id}>{v.nombre} ({v.filas}×{v.columnas_por_fila} = {v.capacidad} asientos)</option>
+                      <option key={v.id} value={v.id}>{v.nombre} ({v.capacidad} asientos)</option>
                     ))}
                   </select>
                   {selectedVenue && (
-                    <p className="form-hint">{selectedVenue.direccion} — Capacidad: {selectedVenue.capacidad} asientos</p>
+                    <p className="form-hint">{selectedVenue.direccion} - {selectedVenue.capacidad} asientos</p>
                   )}
                 </div>
                 <div className="form-group">
@@ -271,19 +285,9 @@ export default function AdminPanel({ user }) {
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Filas</label>
-                  <input className="form-input" name="filas" type="number" min="1" max="26" placeholder="10" value={venueForm.filas} onChange={handleVF} required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Asientos por fila</label>
-                  <input className="form-input" name="columnas_por_fila" type="number" min="1" placeholder="20" value={venueForm.columnas_por_fila} onChange={handleVF} required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Capacidad total</label>
-                  <input className="form-input" readOnly value={venueForm.filas && venueForm.columnas_por_fila ? parseInt(venueForm.filas) * parseInt(venueForm.columnas_por_fila) : "—"} />
-                </div>
+              <div className="form-group">
+                <label className="form-label">Capacidad (cantidad de asientos)</label>
+                <input className="form-input" name="capacidad" type="number" min="1" placeholder="Ej: 16000" value={venueForm.capacidad} onChange={handleVF} required />
               </div>
 
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -301,7 +305,7 @@ export default function AdminPanel({ user }) {
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
-                    <tr><th>#</th><th>Nombre</th><th>Dirección</th><th>Dimensiones</th><th>Capacidad</th><th></th></tr>
+                    <tr><th>#</th><th>Nombre</th><th>Direccion</th><th>Capacidad</th><th></th></tr>
                   </thead>
                   <tbody>
                     {venues.map((v) => (
@@ -309,8 +313,7 @@ export default function AdminPanel({ user }) {
                         <td>{v.id}</td>
                         <td><strong>{v.nombre}</strong></td>
                         <td>{v.direccion}</td>
-                        <td>{v.filas} filas × {v.columnas_por_fila} col</td>
-                        <td>{v.capacidad}</td>
+                        <td>{v.capacidad} asientos</td>
                         <td style={{ display: "flex", gap: 6 }}>
                           <button className="btn btn--secondary btn--sm" onClick={() => startEditVenue(v)}>Editar</button>
                           <button className="btn btn--danger btn--sm" onClick={() => removeVenue(v)}>Eliminar</button>
@@ -323,6 +326,40 @@ export default function AdminPanel({ user }) {
             )}
           </div>
         </>
+      )}
+
+      {/* ─── TAB REPORTES ─── */}
+      {tab === "reports" && (
+        <div className="admin-section">
+          <h2 className="admin-section__title">Reportes de Ocupación</h2>
+          {events.length === 0 ? <p>No hay eventos.</p> : (
+            <div className="reports-grid">
+              {events.map((ev) => {
+                const r = reports[ev.id];
+                if (!r) return <div key={ev.id} className="report-card"><p>Cargando...</p></div>;
+                const pct = r.porcentaje_ocupacion?.toFixed(1) || 0;
+                return (
+                  <div key={ev.id} className="report-card">
+                    <h3 className="report-card__title">{ev.titulo}</h3>
+                    <p className="report-card__venue">{ev.lugar}</p>
+                    <div className="report-card__bar-wrap">
+                      <div className="report-card__bar">
+                        <div className="report-card__bar-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="report-card__pct">{pct}%</span>
+                    </div>
+                    <div className="report-card__stats">
+                      <div><span className="report-card__stat-val">{r.entradas_vendidas}</span><span className="report-card__stat-label">Vendidas</span></div>
+                      <div><span className="report-card__stat-val">{r.entradas_canceladas}</span><span className="report-card__stat-label">Canceladas</span></div>
+                      <div><span className="report-card__stat-val">{r.asientos_ocupados}/{r.asientos_totales}</span><span className="report-card__stat-label">Asientos</span></div>
+                      <div><span className="report-card__stat-val">{ev.cupo_disponible}</span><span className="report-card__stat-label">Disponibles</span></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
