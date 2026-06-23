@@ -187,3 +187,12 @@ npm test
 | Juan   | Backend — Auth, Tickets, Transacciones |
 | Simón  | Backend — Endpoints protegidos |
 | Facu   | Frontend — Vistas y consumo de API |
+
+
+
+## 🐳 Instrucciones de Despliegue con Docker
+
+Para levantar la infraestructura completa de la aplicación (Backend en Go, Frontend en React y Base de Datos MySQL) en un entorno aislado y contenedorizado, asegúrese de tener Docker Desktop ejecutándose y ejecute el siguiente comando en la raíz del proyecto:
+
+```bash
+docker-compose up --build
