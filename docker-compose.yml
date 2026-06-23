@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. El contenedor de la Base de Datos
+  db:
+    image: mysql:8.0
+    container_name: dws_mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dws_proyecto
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # 2. El contenedor de tu API en Go
+  backend:
+    build: ./Backend
+    container_name: dws_go_backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=dws_proyecto
+    depends_on:
+      - db
+
+  # 3. El contenedor de la interfaz en React
+  frontend:
+    build: ./Frontend
+    container_name: dws_react_frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
