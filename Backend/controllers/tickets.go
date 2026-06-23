@@ -11,8 +11,7 @@ import (
 )
 
 type PurchaseInput struct {
-	EventID uint   `json:"event_id" binding:"required"`
-	SeatIDs []uint `json:"seat_ids" binding:"required,min=1"`
+	EventID uint `json:"event_id" binding:"required"`
 }
 
 type TransferInput struct {
@@ -28,18 +27,17 @@ func PurchaseTicket(c *gin.Context) {
 		return
 	}
 
-	tickets, err := services.PurchaseTickets(userID, input.EventID, input.SeatIDs)
+	ticket, err := services.PurchaseTicket(userID, input.EventID)
 	if err != nil {
-		errMsg := err.Error()
-		if errMsg == "sin cupo disponible" {
-			utils.ErrorResponse(c, http.StatusConflict, errMsg)
+		if err.Error() == "sin cupo disponible" {
+			utils.ErrorResponse(c, http.StatusConflict, err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusBadRequest, errMsg)
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusCreated, tickets)
+	utils.SuccessResponse(c, http.StatusCreated, ticket)
 }
 
 func GetMyTickets(c *gin.Context) {
@@ -106,18 +104,4 @@ func TransferTicket(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, http.StatusOK, gin.H{"message": "ticket transferido"})
-}
-
-func GetEventSeats(c *gin.Context) {
-	eventID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "ID de evento inválido")
-		return
-	}
-	seats, err := services.GetSeatsByEventID(uint(eventID))
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	utils.SuccessResponse(c, http.StatusOK, seats)
 }

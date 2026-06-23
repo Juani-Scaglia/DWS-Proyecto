@@ -10,12 +10,8 @@ export const getMyTickets = async () => {
   return axios.get(`${API_URL}/tickets/my-tickets`, { headers: authHeader() });
 };
 
-export const purchaseTickets = async (eventId, seatIds) => {
-  return axios.post(
-    `${API_URL}/tickets/purchase`,
-    { event_id: eventId, seat_ids: seatIds },
-    { headers: authHeader() }
-  );
+export const purchaseTicket = async (eventId) => {
+  return axios.post(`${API_URL}/tickets/purchase`, { event_id: eventId }, { headers: authHeader() });
 };
 
 export const cancelTicket = async (ticketId) => {

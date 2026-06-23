@@ -2,18 +2,24 @@ import axios from "axios";
 
 const API_URL = "http://localhost:8080/api";
 
-export const getEvents = async () => {
-  const response = await axios.get(
-    `${API_URL}/events`
-  );
+const authHeader = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+});
 
-  return response.data;
+export const getEvents = async (category = "") => {
+  const params = category ? { category } : {};
+  return axios.get(`${API_URL}/events`, { params });
 };
 
 export const getEventById = async (id) => {
-  const response = await axios.get(
-    `${API_URL}/events/${id}`
-  );
-
-  return response.data;
+  return axios.get(`${API_URL}/events/${id}`);
 };
+
+export const createEvent = async (data) =>
+  axios.post(`${API_URL}/admin/events`, data, authHeader());
+
+export const updateEvent = async (id, data) =>
+  axios.put(`${API_URL}/admin/events/${id}`, data, authHeader());
+
+export const deleteEvent = async (id) =>
+  axios.delete(`${API_URL}/admin/events/${id}`, authHeader());

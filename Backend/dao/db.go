@@ -37,7 +37,7 @@ func InitDB() {
 
 	log.Println("¡Conexión segura establecida con MySQL en el puerto " + port + "!")
 
-	err = DB.AutoMigrate(&domain.User{}, &domain.Venue{}, &domain.Event{}, &domain.Ticket{}, &domain.Seat{})
+	err = DB.AutoMigrate(&domain.User{}, &domain.Event{}, &domain.Ticket{})
 	if err != nil {
 		log.Fatalf("Error al mapear las tablas desde models.go: %v", err)
 	}
