@@ -726,3 +726,45 @@ func TestTransferTicket_AutoTransferencia(t *testing.T) {
 		t.Error("no se debería poder transferir un ticket a uno mismo")
 	}
 }
+
+func TestTransferTicket_NoAutorizado(t *testing.T) {
+	e := seedEvent(dao.DB)
+	s := seedSeat(dao.DB, e.ID)
+	propietario := seedUser(dao.DB, "propietario_ticket@test.com", "PROP0001")
+	intruso := seedUser(dao.DB, "intruso_ticket@test.com", "INTR0001")
+	tickets, _ := PurchaseTickets(propietario.ID, e.ID, []uint{s.ID})
+
+	err := TransferTicket(intruso.ID, tickets[0].ID, propietario.DNI)
+	if err == nil {
+		t.Error("un usuario no autorizado no debería poder transferir el ticket")
+	}
+}
+
+func TestTransferTicket_Exitoso(t *testing.T) {
+	e := seedEvent(dao.DB)
+	s := seedSeat(dao.DB, e.ID)
+	userA := seedUser(dao.DB, "xfer_from@test.com", "XFRA0001")
+	userB := seedUser(dao.DB, "xfer_to@test.com", "XFRB0001")
+	tickets, err := PurchaseTickets(userA.ID, e.ID, []uint{s.ID})
+	if err != nil {
+		t.Fatalf("PurchaseTickets falló: %v", err)
+	}
+
+	err = TransferTicket(userA.ID, tickets[0].ID, userB.DNI)
+	if err != nil {
+		t.Fatalf("TransferTicket falló: %v", err)
+	}
+}
+
+func TestCreateVenue_DBNula(t *testing.T) {
+	saved := dao.DB
+	dao.DB = nil
+	defer func() { dao.DB = saved }()
+
+	_, err := CreateVenue(VenueInput{
+		Nombre: "Test", Direccion: "Dir", Filas: 5, ColumnasPorFila: 10,
+	})
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
