@@ -187,3 +187,29 @@ npm test
 | Juan   | Backend — Auth, Tickets, Transacciones |
 | Simón  | Backend — Endpoints protegidos |
 | Facu   | Frontend — Vistas y consumo de API |
+
+
+
+## 🐳 Instrucciones de Despliegue con Docker
+
+Para levantar la infraestructura completa de la aplicación (Backend en Go, Frontend en React y Base de Datos MySQL) en un entorno aislado y contenedorizado, asegúrese de tener Docker Desktop ejecutándose y ejecute el siguiente comando en la raíz del proyecto:
+
+```bash
+docker-compose up --build
+
+
+## 🧠 Decisiones de Diseño e Ingeniería (Ingeniería Inversa)
+
+Para garantizar la estabilidad y seguridad del sistema en un entorno de producción, se analizaron los módulos ya desarrollados y se documentaron las siguientes soluciones arquitectónicas:
+
+### 1. Gestión de Aforo Dinámico y Consistencia Transaccional (Evitar Sobreventa)
+Para mitigar **condiciones de carrera (Race Conditions)** en escenarios de alta concurrencia (por ejemplo, muchos usuarios comprando la última entrada al mismo tiempo), se aplicó **Bloqueo Pesimista (Pessimistic Locking)** a nivel de base de datos utilizando la cláusula `FOR UPDATE` mediante GORM en el módulo de tickets:
+
+```go
+// Ejemplo conceptual del bloqueo aplicado en services/tickets.go
+tx := db.Begin()
+var event models.Event
+if err := tx.Raw("SELECT * FROM events WHERE id = ? FOR UPDATE", eventID).Scan(&event).Error; err != nil {
+    tx.Rollback()
+    return err
+}
