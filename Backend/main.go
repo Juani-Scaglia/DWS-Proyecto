@@ -3,7 +3,7 @@ package main
 import (
 	"backend/controllers"
 	"backend/dao"
-	"backend/middlewares" // <--- Descomentamos este import
+	"backend/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
@@ -72,6 +72,9 @@ func main() {
 			admin.POST("/venues", controllers.CreateVenueAdmin)
 			admin.PUT(routeVenueByID, controllers.UpdateVenueAdmin)
 			admin.DELETE(routeVenueByID, controllers.DeleteVenueAdmin)
+
+			// 📊 Reporte de Ocupación para el Administrador (Fase 3)
+			admin.GET("/events/:id/report", controllers.GetOccupationReportAdmin)
 		}
 	}
 

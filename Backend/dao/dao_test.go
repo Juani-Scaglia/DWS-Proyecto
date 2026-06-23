@@ -15,7 +15,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic("no se pudo abrir la BD de test: " + err.Error())
 	}
-	db.AutoMigrate(&models.User{}, &models.Event{}, &models.Ticket{})
+	db.AutoMigrate(&models.User{}, &models.Venue{}, &models.Event{}, &models.Seat{}, &models.Ticket{})
 	DB = db
 	os.Exit(m.Run())
 }
@@ -192,6 +192,36 @@ func TestGetTicketByID_Inexistente(t *testing.T) {
 	}
 }
 
+func TestGetTicketsByUserID_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetTicketsByUserID(1)
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestGetTicketByID_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetTicketByID(1)
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestGetUserByDNI_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetUserByDNI("12345678")
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
 func TestGetTicketsByUserID(t *testing.T) {
 	u := seedUsuario("mytickets@dao.test", "30030030")
 	tickets, err := GetTicketsByUserID(u.ID)
@@ -290,5 +320,232 @@ func TestDeleteEvent(t *testing.T) {
 	_, err := GetEventByID(e.ID)
 	if err == nil {
 		t.Error("el evento debería haberse eliminado")
+	}
+}
+
+// ── dao.CreateEvent ───────────────────────────────────────────────
+
+func TestCreateEventDAO_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	err := CreateEvent(&models.Event{})
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestCreateEventDAO_Exitoso(t *testing.T) {
+	e := &models.Event{Titulo: "DAO Direct", Categoria: "Test", Lugar: "L", Precio: 10, CupoMaximo: 5, CupoDispon: 5}
+	if err := CreateEvent(e); err != nil {
+		t.Fatal(err)
+	}
+	if e.ID == 0 {
+		t.Error("evento sin ID luego de crearlo")
+	}
+}
+
+// ── dao.GetAllVenues / GetVenueByID / CreateVenue / UpdateVenue / DeleteVenue ──
+
+func seedVenueDAO() models.Venue {
+	v := models.Venue{Nombre: "Venue DAO", Direccion: "Dir DAO", Filas: 2, ColumnasPorFila: 3, Capacidad: 6}
+	DB.Create(&v)
+	return v
+}
+
+func TestGetAllVenues_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetAllVenues()
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestGetAllVenues_OK(t *testing.T) {
+	seedVenueDAO()
+	venues, err := GetAllVenues()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(venues) == 0 {
+		t.Error("se esperaba al menos un venue")
+	}
+}
+
+func TestGetVenueByID_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetVenueByID(1)
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestGetVenueByID_Existente(t *testing.T) {
+	v := seedVenueDAO()
+	found, err := GetVenueByID(v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found.ID != v.ID {
+		t.Errorf("ID incorrecto: esperado %d, obtenido %d", v.ID, found.ID)
+	}
+}
+
+func TestGetVenueByID_Inexistente(t *testing.T) {
+	_, err := GetVenueByID(99999)
+	if err == nil {
+		t.Error("se esperaba error para ID inexistente")
+	}
+}
+
+func TestCreateVenue_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	err := CreateVenue(&models.Venue{})
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestCreateVenue_DAO(t *testing.T) {
+	v := &models.Venue{Nombre: "V", Direccion: "D", Filas: 1, ColumnasPorFila: 1, Capacidad: 1}
+	if err := CreateVenue(v); err != nil {
+		t.Fatal(err)
+	}
+	if v.ID == 0 {
+		t.Error("venue sin ID")
+	}
+}
+
+func TestUpdateVenue_DAO(t *testing.T) {
+	v := seedVenueDAO()
+	fields := map[string]interface{}{"nombre": "Venue Actualizado DAO"}
+	if err := UpdateVenue(v.ID, fields); err != nil {
+		t.Fatal(err)
+	}
+	updated, _ := GetVenueByID(v.ID)
+	if updated.Nombre != "Venue Actualizado DAO" {
+		t.Errorf("nombre no actualizado: %s", updated.Nombre)
+	}
+}
+
+func TestDeleteVenue_DAO(t *testing.T) {
+	v := seedVenueDAO()
+	if err := DeleteVenue(v.ID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// ── dao.Seat ──────────────────────────────────────────────────────
+
+func seedSeatDAO(eventID uint) models.Seat {
+	s := models.Seat{EventID: eventID, Fila: "A", Numero: 99, Ocupado: false}
+	DB.Create(&s)
+	return s
+}
+
+func TestGetSeatsByEventID_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetSeatsByEventID(1)
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestGetSeatsByEventID_OK(t *testing.T) {
+	e := seedEvento(5)
+	seedSeatDAO(e.ID)
+	seats, err := GetSeatsByEventID(e.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(seats) == 0 {
+		t.Error("se esperaba al menos un asiento")
+	}
+}
+
+func TestGetSeatByID_DBNula(t *testing.T) {
+	saved := DB
+	DB = nil
+	_, err := GetSeatByID(1)
+	DB = saved
+	if err == nil {
+		t.Error("se esperaba error con DB nula")
+	}
+}
+
+func TestGetSeatByID_Existente(t *testing.T) {
+	e := seedEvento(5)
+	s := seedSeatDAO(e.ID)
+	found, err := GetSeatByID(s.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found.ID != s.ID {
+		t.Errorf("ID incorrecto: esperado %d, obtenido %d", s.ID, found.ID)
+	}
+}
+
+func TestGetSeatByID_Inexistente(t *testing.T) {
+	_, err := GetSeatByID(99999)
+	if err == nil {
+		t.Error("se esperaba error para ID inexistente")
+	}
+}
+
+func TestOccupyAndFreeSeats(t *testing.T) {
+	e := seedEvento(5)
+	s := models.Seat{EventID: e.ID, Fila: "Z", Numero: 1, Ocupado: false}
+	DB.Create(&s)
+
+	if err := OccupySeats(DB, []uint{s.ID}); err != nil {
+		t.Fatal(err)
+	}
+	var afterOccupy models.Seat
+	DB.First(&afterOccupy, s.ID)
+	if !afterOccupy.Ocupado {
+		t.Error("asiento debería estar ocupado después de OccupySeats")
+	}
+
+	if err := FreeSeats(DB, []uint{s.ID}); err != nil {
+		t.Fatal(err)
+	}
+	var afterFree models.Seat
+	DB.First(&afterFree, s.ID)
+	if afterFree.Ocupado {
+		t.Error("asiento debería estar libre después de FreeSeats")
+	}
+}
+
+func TestFreeSeatByTicketSeatID_DAO(t *testing.T) {
+	e := seedEvento(5)
+	s := models.Seat{EventID: e.ID, Fila: "Y", Numero: 1, Ocupado: true}
+	DB.Create(&s)
+
+	if err := FreeSeatByTicketSeatID(DB, s.ID); err != nil {
+		t.Fatal(err)
+	}
+	var updated models.Seat
+	DB.First(&updated, s.ID)
+	if updated.Ocupado {
+		t.Error("asiento debería estar libre")
+	}
+}
+
+func TestCreateSeatsForEvent_OK(t *testing.T) {
+	e := seedEvento(10)
+	if err := CreateSeatsForEvent(DB, e.ID, 3, 4); err != nil {
+		t.Fatal(err)
+	}
+	seats, _ := GetSeatsByEventID(e.ID)
+	if len(seats) != 12 {
+		t.Errorf("cantidad de asientos: esperado 12, obtenido %d", len(seats))
 	}
 }

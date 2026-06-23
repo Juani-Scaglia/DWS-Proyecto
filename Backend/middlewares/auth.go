@@ -41,7 +41,6 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// JWT claims son float64 por el encoding JSON; convertimos a uint para los controllers
 		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token inválido"})

@@ -9,6 +9,7 @@ import (
 	domain "backend/domain/models"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func PurchaseTickets(userID uint, eventID uint, seatIDs []uint) ([]domain.Ticket, error) {
@@ -19,6 +20,7 @@ func PurchaseTickets(userID uint, eventID uint, seatIDs []uint) ([]domain.Ticket
 		return nil, errors.New("debés seleccionar al menos un asiento")
 	}
 
+	// 1. Validar límite de 10 entradas acumuladas por usuario para el evento
 	var userCount int64
 	if err := dao.DB.Model(&domain.Ticket{}).
 		Where("user_id = ? AND event_id = ? AND estado = 'activo'", userID, eventID).
@@ -29,22 +31,35 @@ func PurchaseTickets(userID uint, eventID uint, seatIDs []uint) ([]domain.Ticket
 		return nil, fmt.Errorf("alcanzaste el límite de 10 entradas para este evento (tenés %d)", userCount)
 	}
 
-	for _, sid := range seatIDs {
-		seat, err := dao.GetSeatByID(sid)
-		if err != nil {
-			return nil, err
-		}
-		if seat.EventID != eventID {
-			return nil, errors.New("el asiento no pertenece a este evento")
-		}
-		if seat.Ocupado {
-			return nil, fmt.Errorf("el asiento %s%d ya está ocupado", seat.Fila, seat.Numero)
-		}
-	}
-
 	var tickets []domain.Ticket
 
+	// 2. Bloque Transaccional de Compra (Fase 3)
 	err := dao.DB.Transaction(func(tx *gorm.DB) error {
+		
+		// A) Bloquear y verificar el estado actual de los asientos seleccionados (Evita compras duplicadas simultáneas)
+		var seats []domain.Seat
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id IN ?", seatIDs).
+			Find(&seats).Error; err != nil {
+			return err
+		}
+
+		if len(seats) != len(seatIDs) {
+			return errors.New("uno o más IDs de asiento no existen")
+		}
+
+		// B) Validar que pertenezcan al evento y NO estén ya ocupados
+		for _, seat := range seats {
+			if seat.EventID != eventID {
+				return fmt.Errorf("el asiento %s%d no pertenece a este evento", seat.Fila, seat.Numero)
+			}
+			if seat.Ocupado {
+				// Rebotará con HTTP 400 si alguno está ocupado
+				return fmt.Errorf("el asiento %s%d ya está ocupado", seat.Fila, seat.Numero)
+			}
+		}
+
+		// C) Descontar el cupo disponible del evento de forma segura
 		result := tx.Model(&domain.Event{}).
 			Where("id = ? AND cupo_disponible >= ?", eventID, len(seatIDs)).
 			UpdateColumn("cupo_disponible", gorm.Expr("cupo_disponible - ?", len(seatIDs)))
@@ -52,13 +67,15 @@ func PurchaseTickets(userID uint, eventID uint, seatIDs []uint) ([]domain.Ticket
 			return result.Error
 		}
 		if result.RowsAffected == 0 {
-			return errors.New("sin cupo disponible")
+			return errors.New("sin cupo disponible para la cantidad solicitada")
 		}
 
+		// D) Marcar los asientos como ocupados
 		if err := dao.OccupySeats(tx, seatIDs); err != nil {
 			return err
 		}
 
+		// E) Emitir y registrar los tickets correspondientes
 		for _, sid := range seatIDs {
 			seatID := sid
 			t := domain.Ticket{
