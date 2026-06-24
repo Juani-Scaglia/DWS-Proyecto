@@ -14,6 +14,7 @@ export default function EventDetail({ user }) {
   const [buying, setBuying] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [seatMapKey, setSeatMapKey] = useState(0);
 
   useEffect(() => {
     Promise.all([getEventById(id), getEventSeats(id)])
@@ -33,6 +34,7 @@ export default function EventDetail({ user }) {
       await purchaseTickets(parseInt(id), selectedSeats);
       setSuccess(`${selectedSeats.length} entrada(s) comprada(s). Podés verlas en Mis Entradas.`);
       setSelectedSeats([]);
+      setSeatMapKey((k) => k + 1);
       const [evRes, seatsRes] = await Promise.all([getEventById(id), getEventSeats(id)]);
       setEvent(evRes.data);
       setSeats(seatsRes.data);
@@ -82,7 +84,7 @@ export default function EventDetail({ user }) {
 
       <h2>Seleccioná tus asientos</h2>
       {seats.length > 0 ? (
-        <SeatMap seats={seats} maxSelectable={10} onSelectionChange={setSelectedSeats} venueType={resolveVenueType(event)} eventCategory={event.categoria} />
+        <SeatMap key={seatMapKey} seats={seats} maxSelectable={10} onSelectionChange={setSelectedSeats} venueType={resolveVenueType(event)} eventCategory={event.categoria} />
       ) : (
         <p>No hay asientos disponibles.</p>
       )}

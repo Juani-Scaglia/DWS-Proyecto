@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"backend/services"
 
@@ -11,7 +12,12 @@ import (
 func RegisterUser(c *gin.Context) {
 	var input services.RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		msg := err.Error()
+		if strings.Contains(msg, "'Password'") && strings.Contains(msg, "'min'") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "La contraseña debe tener al menos 6 caracteres"})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 

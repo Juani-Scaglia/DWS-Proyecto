@@ -423,7 +423,7 @@ export default function AdminPanel({ user }) {
               {events.map((ev) => {
                 const r = reports[ev.id];
                 if (!r) return <div key={ev.id} className="report-card"><p>Cargando...</p></div>;
-                const pct = r.porcentaje_ocupacion?.toFixed(1) || 0;
+                const pct = r.occupation_percent?.toFixed(1) || 0;
                 return (
                   <div key={ev.id} className="report-card">
                     <h3 className="report-card__title">{ev.titulo}</h3>
@@ -435,9 +435,8 @@ export default function AdminPanel({ user }) {
                       <span className="report-card__pct">{pct}%</span>
                     </div>
                     <div className="report-card__stats">
-                      <div><span className="report-card__stat-val">{r.entradas_vendidas}</span><span className="report-card__stat-label">Vendidas</span></div>
-                      <div><span className="report-card__stat-val">{r.entradas_canceladas}</span><span className="report-card__stat-label">Canceladas</span></div>
-                      <div><span className="report-card__stat-val">{r.asientos_ocupados}/{r.asientos_totales}</span><span className="report-card__stat-label">Asientos</span></div>
+                      <div><span className="report-card__stat-val">{r.tickets_issued}</span><span className="report-card__stat-label">Vendidas</span></div>
+                      <div><span className="report-card__stat-val">{r.tickets_issued}/{r.total_capacity}</span><span className="report-card__stat-label">Asientos</span></div>
                       <div><span className="report-card__stat-val">{ev.cupo_disponible}</span><span className="report-card__stat-label">Disponibles</span></div>
                     </div>
                   </div>

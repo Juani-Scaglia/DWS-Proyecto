@@ -41,6 +41,11 @@ func Register(input RegisterInput) (*domain.User, error) {
 		return nil, errors.New("el email ya esta registrado")
 	}
 
+	var existingDNI domain.User
+	if err := dao.DB.Where("dni = ?", input.DNI).First(&existingDNI).Error; err == nil {
+		return nil, errors.New("el DNI ya está registrado")
+	}
+
 	user := domain.User{
 		Email:    input.Email,
 		Password: hashPassword(input.Password),
