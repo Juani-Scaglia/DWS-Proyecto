@@ -1108,7 +1108,7 @@ a:not([class]):hover { text-decoration: underline; }
 .ticket-card__meta { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
 /* ===================== SEAT MAP ===================== */
-.seatmap { margin: 20px 0; overflow-x: auto; }
+.seatmap { margin: 20px 0; }
 .seatmap__stage { text-align: center; background: var(--accent-light); color: var(--accent-text); padding: 8px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; font-size: 13px; font-weight: 600; letter-spacing: 2px; }
 .seatmap__grid { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; background: var(--bg-card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
 .seatmap__row { display: flex; align-items: center; gap: 4px; }
@@ -1132,10 +1132,23 @@ a:not([class]):hover { text-decoration: underline; }
   .seatmap__dot--taken { background: #1f1a2e; }
 }
 
+/* Grilla mediana (80-200 asientos) */
+.seatmap__grid--sm { gap: 2px; padding: 10px 4px; }
+.seatmap__grid--sm .seatmap__row { gap: 2px; }
+.seatmap__grid--sm .seatmap__row-label { width: 16px; font-size: 9px; }
+.seatmap__grid--sm .seatmap__seat { width: 18px; height: 18px; font-size: 7px; border-radius: 3px; }
+
+/* Grilla chica (200+ asientos) */
+.seatmap__grid--xs { gap: 1px; padding: 8px 2px; }
+.seatmap__grid--xs .seatmap__row { gap: 1px; }
+.seatmap__grid--xs .seatmap__row-label { width: 14px; font-size: 8px; }
+.seatmap__grid--xs .seatmap__seat { width: 12px; height: 12px; font-size: 0; border-radius: 2px; padding: 0; }
+
 /* ===================== STADIUM MAP ===================== */
 .stadium { display: flex; flex-direction: column; gap: 8px; max-width: 600px; margin: 0 auto; }
 .stadium__middle { display: flex; gap: 8px; align-items: stretch; }
 .stadium__field { flex: 1; background: #166534; border-radius: var(--radius-sm); min-height: 120px; display: flex; align-items: center; justify-content: center; position: relative; border: 2px dashed #22c55e; }
+.stadium__field-label { color: #22c55e; font-size: 16px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; opacity: .6; }
 .stadium__bottom-row { display: flex; gap: 8px; }
 .stadium__bottom-row > * { flex: 1; }
 

@@ -44,6 +44,13 @@ export default function EventDetail({ user }) {
   if (loading) return <div className="loading">Cargando evento...</div>;
   if (!event) return <div className="container"><div className="alert alert--error">{error}</div><Link to="/">Volver</Link></div>;
 
+  const resolveVenueType = (ev) => {
+    if (ev.venue?.tipo) return ev.venue.tipo;
+    if (["Teatro", "Cine"].includes(ev.categoria)) return "escenario";
+    if (ev.categoria === "Deportes") return "estadio";
+    return "escenario";
+  };
+
   const fecha = new Date(event.fecha).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const hora = new Date(event.fecha).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
   const total = selectedSeats.length * Number(event.precio);
@@ -75,7 +82,7 @@ export default function EventDetail({ user }) {
 
       <h2>Seleccioná tus asientos</h2>
       {seats.length > 0 ? (
-        <SeatMap seats={seats} maxSelectable={10} onSelectionChange={setSelectedSeats} venueType={event.venue?.tipo || "estadio"} eventCategory={event.categoria} />
+        <SeatMap seats={seats} maxSelectable={10} onSelectionChange={setSelectedSeats} venueType={resolveVenueType(event)} eventCategory={event.categoria} />
       ) : (
         <p>No hay asientos disponibles.</p>
       )}

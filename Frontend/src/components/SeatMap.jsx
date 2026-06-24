@@ -43,8 +43,14 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange, venue
       rows[s.fila].push(s);
     });
 
+    const maxCols = Math.max(...Object.values(rows).map((r) => r.length), 1);
+    const total = seatList.length;
+    let sizeClass = "";
+    if (total > 200 || maxCols > 20) sizeClass = " seatmap__grid--xs";
+    else if (total > 80 || maxCols > 12) sizeClass = " seatmap__grid--sm";
+
     return (
-      <div className="seatmap__grid">
+      <div className={`seatmap__grid${sizeClass}`}>
         {Object.entries(rows)
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([fila, asientos]) => (
@@ -63,7 +69,7 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange, venue
                     disabled={s.ocupado}
                     title={`${s.sector} - ${s.fila}${s.numero}`}
                   >
-                    {s.numero}
+                    {sizeClass === " seatmap__grid--xs" ? "" : s.numero}
                   </button>
                 );
               })}
@@ -73,8 +79,8 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange, venue
     );
   };
 
-  // ── Sin sectores: mapa directo ──
-  if (!hasSectors) {
+  // ── Escenario: siempre grilla directa, sin sectores ──
+  if (isEscenario) {
     return (
       <div className="seatmap">
         <div className="seatmap__stage">ESCENARIO</div>
@@ -84,7 +90,18 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange, venue
     );
   }
 
-  // ── Con sectores: vista detalle de un sector ──
+  // ── Un solo sector: mapa directo ──
+  if (!hasSectors) {
+    return (
+      <div className="seatmap">
+        <div className="seatmap__stage">{sectors[0]?.nombre || "GENERAL"}</div>
+        {renderSeats(seats)}
+        <Legend />
+      </div>
+    );
+  }
+
+  // ── Vista detalle de un sector seleccionado ──
   if (activeSector) {
     const sec = sectors.find((s) => s.nombre === activeSector);
     return (
@@ -103,55 +120,38 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange, venue
     );
   }
 
-  const findSec = (name) => sectors.find((s) => s.nombre === name);
   const selInSec = (sec) =>
     sec ? selected.filter((id) => sec.seats.some((s) => s.id === id)).length : 0;
 
-  // ── ESCENARIO: sectores apilados frente al escenario ──
-  if (isEscenario) {
-    const sectorOrder = ["Preferencial", "Platea Norte", "Platea Sur", "Tribuna Este", "Tribuna Oeste", "Campo"];
-    const orderedSectors = sectorOrder.map(findSec).filter(Boolean);
-
-    return (
-      <div className="seatmap">
-        <p style={{ textAlign: "center", marginBottom: 12, fontSize: 13, color: "var(--text-muted)" }}>
-          Selecciona un sector para elegir tus asientos
-        </p>
-        <div className="stage-layout">
-          <div className="stage-layout__stage">ESCENARIO</div>
-          <div className="stage-layout__sectors">
-            {orderedSectors.map((sec) => (
-              <SectorBtn
-                key={sec.nombre}
-                sec={sec}
-                pos="stage-row"
-                selCount={selInSec(sec)}
-                onClick={setActiveSector}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Busca sectores por patron (funciona con "Platea Norte", "Tribuna Norte", etc.)
+  const findByPattern = (pattern) => sectors.find((s) => s.nombre.toLowerCase().includes(pattern));
 
   // ── ESTADIO: sectores alrededor de la cancha ──
+  const norte = findByPattern("norte");
+  const sur = findByPattern("sur");
+  const este = findByPattern("este");
+  const oeste = findByPattern("oeste");
+  const campo = findByPattern("campo");
   const hideCampo = eventCategory === "Deportes";
+
   return (
     <div className="seatmap">
       <p style={{ textAlign: "center", marginBottom: 12, fontSize: 13, color: "var(--text-muted)" }}>
         Selecciona un sector para elegir tus asientos
       </p>
       <div className="stadium">
-        <SectorBtn sec={findSec("Tribuna Norte")} pos="top" selCount={selInSec(findSec("Tribuna Norte"))} onClick={setActiveSector} />
+        <SectorBtn sec={norte} pos="top" selCount={selInSec(norte)} onClick={setActiveSector} />
         <div className="stadium__middle">
-          <SectorBtn sec={findSec("Tribuna Oeste")} pos="left" selCount={selInSec(findSec("Tribuna Oeste"))} onClick={setActiveSector} />
+          <SectorBtn sec={oeste} pos="left" selCount={selInSec(oeste)} onClick={setActiveSector} />
           <div className="stadium__field">
-            {!hideCampo && <SectorBtn sec={findSec("Campo")} pos="field" selCount={selInSec(findSec("Campo"))} onClick={setActiveSector} />}
+            {hideCampo
+              ? <span className="stadium__field-label">CANCHA</span>
+              : <SectorBtn sec={campo} pos="field" selCount={selInSec(campo)} onClick={setActiveSector} />
+            }
           </div>
-          <SectorBtn sec={findSec("Tribuna Este")} pos="right" selCount={selInSec(findSec("Tribuna Este"))} onClick={setActiveSector} />
+          <SectorBtn sec={este} pos="right" selCount={selInSec(este)} onClick={setActiveSector} />
         </div>
-        <SectorBtn sec={findSec("Tribuna Sur")} pos="bottom" selCount={selInSec(findSec("Tribuna Sur"))} onClick={setActiveSector} />
+        <SectorBtn sec={sur} pos="bottom" selCount={selInSec(sur)} onClick={setActiveSector} />
       </div>
     </div>
   );
