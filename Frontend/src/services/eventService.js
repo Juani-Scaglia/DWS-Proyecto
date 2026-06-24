@@ -23,3 +23,14 @@ export const updateEvent = (id, data) =>
 
 export const deleteEvent = (id) =>
   axios.delete(`${API_URL}/admin/events/${id}`, authHeader());
+
+export const uploadImage = (file) => {
+  const formData = new FormData();
+  formData.append("imagen", file);
+  return axios.post(`${API_URL}/admin/upload`, formData, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

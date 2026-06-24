@@ -6,10 +6,11 @@ import "react-datepicker/dist/react-datepicker.css";
 import { getEvents, createEvent, updateEvent, deleteEvent } from "../services/eventService";
 import { getVenues, createVenue, updateVenue, deleteVenue } from "../services/venueService";
 import { getEventReport } from "../services/ticketService";
+import { uploadImage } from "../services/eventService";
 
 registerLocale("es", es);
 
-const EMPTY_EVENT = { titulo: "", descripcion: "", categoria: "Recitales", precio: "", venue_id: "" };
+const EMPTY_EVENT = { titulo: "", descripcion: "", categoria: "Recitales", precio: "", venue_id: "", imagen: "" };
 const EMPTY_VENUE = {
   nombre: "", direccion: "",
   cap_platea_norte: "", cap_platea_sur: "",
@@ -76,6 +77,17 @@ export default function AdminPanel({ user }) {
 
   /* ── helpers ── */
   const handleEF = (e) => setEventForm({ ...eventForm, [e.target.name]: e.target.value });
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const res = await uploadImage(file);
+      setEventForm((prev) => ({ ...prev, imagen: res.data.url }));
+    } catch {
+      flash("error", "Error al subir la imagen");
+    }
+  };
   const handleVF = (e) => setVenueForm({ ...venueForm, [e.target.name]: e.target.value });
   const selectedVenue = venues.find((v) => v.id === Number(eventForm.venue_id));
 
@@ -111,7 +123,7 @@ export default function AdminPanel({ user }) {
     setEditingEvent(ev);
     setEventForm({
       titulo: ev.titulo, descripcion: ev.descripcion || "",
-      categoria: ev.categoria, precio: String(ev.precio), venue_id: String(ev.venue_id),
+      categoria: ev.categoria, precio: String(ev.precio), venue_id: String(ev.venue_id), imagen: ev.imagen || "",
     });
     setFechaHora(new Date(ev.fecha));
     setTab("events");
@@ -220,7 +232,13 @@ export default function AdminPanel({ user }) {
 
               <div className="form-group">
                 <label className="form-label">Descripción</label>
-                <textarea className="form-input form-textarea" name="descripcion" placeholder="Descripción del evento..." value={eventForm.descripcion} onChange={handleEF} rows={3} />
+                <textarea className="form-input form-textarea" name="descripcion" placeholder="Descripcion del evento..." value={eventForm.descripcion} onChange={handleEF} rows={3} />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Imagen del evento</label>
+                <input className="form-input" type="file" accept="image/*" onChange={handleImageUpload} />
+                {eventForm.imagen && <img src={eventForm.imagen} alt="Preview" style={{ marginTop: 8, maxHeight: 120, borderRadius: 8 }} />}
               </div>
 
               <div className="form-row">

@@ -40,6 +40,8 @@ func main() {
 	// ==========================================
 	// 4. DEFINICIÓN DE ENDPOINTS
 	// ==========================================
+	r.Static("/uploads", "./uploads")
+
 	api := r.Group("/api")
 	{
 		// --- RUTAS PÚBLICAS (Eventos, Venues y Auth) ---
@@ -66,6 +68,7 @@ func main() {
 		admin.Use(middlewares.AuthMiddleware())
 		admin.Use(middlewares.AdminMiddleware())
 		{
+			admin.POST("/upload", controllers.UploadImage)
 			admin.POST("/events", controllers.CreateEventAdmin)
 			admin.PUT(routeEventByID, controllers.UpdateEventAdmin)
 			admin.DELETE(routeEventByID, controllers.DeleteEventAdmin)
