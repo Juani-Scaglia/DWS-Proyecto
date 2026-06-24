@@ -22,9 +22,39 @@ Aplicación web full-stack tipo Ticketek para la compra, cancelación y transfer
 
 ## Capturas de pantalla
 
-> Las capturas se encuentran en la carpeta [`/docs/screenshots/`](./docs/screenshots/).
+### Catálogo de Eventos
+![Home](./docs/screenshots/home.png)
 
-<!-- Agregar capturas aquí -->
+### Filtro por Categoría
+![Home filtrado](./docs/screenshots/home-filtrado.png)
+
+### Login y Registro
+![Login](./docs/screenshots/login.png)
+![Registro](./docs/screenshots/registro.png)
+
+### Detalle de Evento
+![Detalle de evento](./docs/screenshots/evento-detalle.png)
+
+### Mapa de Asientos — Vista Estadio
+![Mapa estadio](./docs/screenshots/mapa-estadio.png)
+
+### Mapa de Asientos — Vista Sector
+![Mapa sector](./docs/screenshots/mapa-sector.png)
+
+### Compra Exitosa
+![Compra exitosa](./docs/screenshots/compra-exitoso.png)
+
+### Mis Entradas
+![Mis entradas](./docs/screenshots/mis-entradas.png)
+
+### Panel Admin — Eventos
+![Admin eventos](./docs/screenshots/admin-eventos.png)
+
+### Panel Admin — Establecimientos
+![Admin venues](./docs/screenshots/admin-venues.png)
+
+### Panel Admin — Reportes
+![Admin reportes](./docs/screenshots/admin-reportes.png)
 
 ---
 
@@ -244,7 +274,7 @@ go test ./... -v
 
 ```bash
 go test ./... -coverprofile=coverage.out
-go tool cover -func=coverage.out
+go tool cover -func coverage.out
 ```
 
 ### Ver cobertura en el navegador (HTML interactivo)
