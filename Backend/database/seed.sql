@@ -130,7 +130,9 @@ DROP PROCEDURE IF EXISTS generar_asientos_sectores;
 DROP PROCEDURE IF EXISTS insertar_sector;
 
 -- USUARIOS ADMIN (passwords hasheadas con SHA-256)
-INSERT IGNORE INTO users (nombre, apellido, email, password, dni, rol, created_at) VALUES
+DELETE FROM tickets;
+DELETE FROM users;
+INSERT INTO users (nombre, apellido, email, password, dni, rol, created_at) VALUES
 ('Simon',  'Factor',       '2408192@ucc.edu.ar', SHA2('Boca07',     256), '47192801', 'admin', NOW()),
 ('Juan',   'Scaglia',      '2413770@ucc.edu.ar', SHA2('Juanceto01', 256), '46377960', 'admin', NOW()),
 ('Facundo','Arribillaga',  '2411006@ucc.edu.ar', SHA2('faqarri06',  256), '46450861', 'admin', NOW());
