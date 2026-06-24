@@ -61,7 +61,8 @@ func CreateEvent(input EventInput) (*domain.Event, error) {
 }
 
 func UpdateEvent(id uint, input EventInput) (*domain.Event, error) {
-	if _, err := dao.GetEventByID(id); err != nil {
+	oldEvent, err := dao.GetEventByID(id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -70,19 +71,37 @@ func UpdateEvent(id uint, input EventInput) (*domain.Event, error) {
 		return nil, err
 	}
 
-	fields := map[string]interface{}{
-		"titulo":      input.Titulo,
-		"descripcion": input.Descripcion,
-		"categoria":   input.Categoria,
-		"fecha":       input.Fecha,
-		"lugar":       venue.Nombre + " - " + venue.Direccion,
-		"precio":      input.Precio,
-		"imagen":      input.Imagen,
-		"venue_id":    input.VenueID,
-	}
-	if err := dao.UpdateEvent(id, fields); err != nil {
+	venueChanged := oldEvent.VenueID != input.VenueID
+
+	err = dao.DB.Transaction(func(tx *gorm.DB) error {
+		fields := map[string]interface{}{
+			"titulo":          input.Titulo,
+			"descripcion":     input.Descripcion,
+			"categoria":       input.Categoria,
+			"fecha":           input.Fecha,
+			"lugar":           venue.Nombre + " - " + venue.Direccion,
+			"precio":          input.Precio,
+			"imagen":          input.Imagen,
+			"venue_id":        input.VenueID,
+			"cupo_maximo":     venue.Capacidad,
+			"cupo_disponible": venue.Capacidad,
+		}
+		if err := tx.Model(&domain.Event{}).Where("id = ?", id).Updates(fields).Error; err != nil {
+			return err
+		}
+		if venueChanged {
+			tx.Where("event_id = ?", id).Delete(&domain.Ticket{})
+			tx.Where("event_id = ?", id).Delete(&domain.Seat{})
+			if err := dao.CreateSeatsForEvent(tx, id, VenueSectores(venue)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
+
 	event, err := dao.GetEventByID(id)
 	return &event, err
 }

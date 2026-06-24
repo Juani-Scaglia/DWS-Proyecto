@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getEventById, getEventSeats } from "../services/eventService";
-import { purchaseTickets } from "../services/ticketService";
+import { purchaseTickets, getMyTickets } from "../services/ticketService";
 import SeatMap from "../components/SeatMap";
 
 export default function EventDetail({ user }) {
@@ -15,16 +15,27 @@ export default function EventDetail({ user }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [seatMapKey, setSeatMapKey] = useState(0);
+  const [myEventTickets, setMyEventTickets] = useState(0);
 
-  useEffect(() => {
-    Promise.all([getEventById(id), getEventSeats(id)])
-      .then(([evRes, seatsRes]) => {
+  const loadData = () => {
+    const promises = [getEventById(id), getEventSeats(id)];
+    if (user) promises.push(getMyTickets());
+    Promise.all(promises)
+      .then(([evRes, seatsRes, ticketsRes]) => {
         setEvent(evRes.data);
         setSeats(seatsRes.data);
+        if (ticketsRes) {
+          const count = ticketsRes.data.filter(
+            (t) => t.event_id === parseInt(id) && t.estado === "activo"
+          ).length;
+          setMyEventTickets(count);
+        }
       })
       .catch(() => setError("Evento no encontrado"))
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(() => { loadData(); }, [id]);
 
   const handleComprar = async () => {
     if (!user) { navigate("/login"); return; }
@@ -35,9 +46,7 @@ export default function EventDetail({ user }) {
       setSuccess(`${selectedSeats.length} entrada(s) comprada(s). Podés verlas en Mis Entradas.`);
       setSelectedSeats([]);
       setSeatMapKey((k) => k + 1);
-      const [evRes, seatsRes] = await Promise.all([getEventById(id), getEventSeats(id)]);
-      setEvent(evRes.data);
-      setSeats(seatsRes.data);
+      loadData();
     } catch (err) {
       setError(err.response?.data?.error || "Error al comprar");
     } finally { setBuying(false); }
@@ -83,8 +92,13 @@ export default function EventDetail({ user }) {
       {error && <div className="alert alert--error">{error}</div>}
 
       <h2>Seleccioná tus asientos</h2>
+      {myEventTickets > 0 && (
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>
+          Ya tenés {myEventTickets} entrada(s) para este evento. Podés seleccionar hasta {Math.max(0, 10 - myEventTickets)} más.
+        </p>
+      )}
       {seats.length > 0 ? (
-        <SeatMap key={seatMapKey} seats={seats} maxSelectable={10} onSelectionChange={setSelectedSeats} venueType={resolveVenueType(event)} eventCategory={event.categoria} />
+        <SeatMap key={seatMapKey} seats={seats} maxSelectable={Math.max(0, 10 - myEventTickets)} onSelectionChange={setSelectedSeats} venueType={resolveVenueType(event)} eventCategory={event.categoria} />
       ) : (
         <p>No hay asientos disponibles.</p>
       )}

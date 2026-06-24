@@ -144,9 +144,9 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange, venue
         <div className="stadium__middle">
           <SectorBtn sec={oeste} pos="left" selCount={selInSec(oeste)} onClick={setActiveSector} />
           <div className="stadium__field">
-            {hideCampo
-              ? <span className="stadium__field-label">CANCHA</span>
-              : <SectorBtn sec={campo} pos="field" selCount={selInSec(campo)} onClick={setActiveSector} />
+            {!hideCampo && campo
+              ? <SectorBtn sec={campo} pos="field" selCount={selInSec(campo)} onClick={setActiveSector} />
+              : <span className="stadium__field-label">CANCHA</span>
             }
           </div>
           <SectorBtn sec={este} pos="right" selCount={selInSec(este)} onClick={setActiveSector} />
