@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 
-export default function SeatMap({ seats, maxSelectable, onSelectionChange }) {
+export default function SeatMap({ seats, maxSelectable, onSelectionChange, venueType, eventCategory }) {
   const [selected, setSelected] = useState([]);
   const [activeSector, setActiveSector] = useState(null);
 
@@ -19,6 +19,7 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange }) {
   }, [seats]);
 
   const hasSectors = sectors.length > 1;
+  const isEscenario = venueType === "escenario";
 
   const toggle = (seat) => {
     if (seat.ocupado) return;
@@ -83,7 +84,7 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange }) {
     );
   }
 
-  // ── Con sectores: vista detalle ──
+  // ── Con sectores: vista detalle de un sector ──
   if (activeSector) {
     const sec = sectors.find((s) => s.nombre === activeSector);
     return (
@@ -102,29 +103,55 @@ export default function SeatMap({ seats, maxSelectable, onSelectionChange }) {
     );
   }
 
-  // ── Con sectores: vista estadio ──
   const findSec = (name) => sectors.find((s) => s.nombre === name);
   const selInSec = (sec) =>
     sec ? selected.filter((id) => sec.seats.some((s) => s.id === id)).length : 0;
 
+  // ── ESCENARIO: sectores apilados frente al escenario ──
+  if (isEscenario) {
+    const sectorOrder = ["Preferencial", "Platea Norte", "Platea Sur", "Tribuna Este", "Tribuna Oeste", "Campo"];
+    const orderedSectors = sectorOrder.map(findSec).filter(Boolean);
+
+    return (
+      <div className="seatmap">
+        <p style={{ textAlign: "center", marginBottom: 12, fontSize: 13, color: "var(--text-muted)" }}>
+          Selecciona un sector para elegir tus asientos
+        </p>
+        <div className="stage-layout">
+          <div className="stage-layout__stage">ESCENARIO</div>
+          <div className="stage-layout__sectors">
+            {orderedSectors.map((sec) => (
+              <SectorBtn
+                key={sec.nombre}
+                sec={sec}
+                pos="stage-row"
+                selCount={selInSec(sec)}
+                onClick={setActiveSector}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ESTADIO: sectores alrededor de la cancha ──
+  const hideCampo = eventCategory === "Deportes";
   return (
     <div className="seatmap">
       <p style={{ textAlign: "center", marginBottom: 12, fontSize: 13, color: "var(--text-muted)" }}>
         Selecciona un sector para elegir tus asientos
       </p>
       <div className="stadium">
-        <SectorBtn sec={findSec("Platea Norte")} pos="top" selCount={selInSec(findSec("Platea Norte"))} onClick={setActiveSector} />
+        <SectorBtn sec={findSec("Tribuna Norte")} pos="top" selCount={selInSec(findSec("Tribuna Norte"))} onClick={setActiveSector} />
         <div className="stadium__middle">
           <SectorBtn sec={findSec("Tribuna Oeste")} pos="left" selCount={selInSec(findSec("Tribuna Oeste"))} onClick={setActiveSector} />
           <div className="stadium__field">
-            <SectorBtn sec={findSec("Campo")} pos="field" selCount={selInSec(findSec("Campo"))} onClick={setActiveSector} />
+            {!hideCampo && <SectorBtn sec={findSec("Campo")} pos="field" selCount={selInSec(findSec("Campo"))} onClick={setActiveSector} />}
           </div>
           <SectorBtn sec={findSec("Tribuna Este")} pos="right" selCount={selInSec(findSec("Tribuna Este"))} onClick={setActiveSector} />
         </div>
-        <div className="stadium__bottom-row">
-          <SectorBtn sec={findSec("Preferencial")} pos="bottom" selCount={selInSec(findSec("Preferencial"))} onClick={setActiveSector} />
-          <SectorBtn sec={findSec("Platea Sur")} pos="bottom" selCount={selInSec(findSec("Platea Sur"))} onClick={setActiveSector} />
-        </div>
+        <SectorBtn sec={findSec("Tribuna Sur")} pos="bottom" selCount={selInSec(findSec("Tribuna Sur"))} onClick={setActiveSector} />
       </div>
     </div>
   );

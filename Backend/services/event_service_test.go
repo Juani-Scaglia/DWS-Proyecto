@@ -340,7 +340,7 @@ func TestCreateVenue_Exitoso(t *testing.T) {
 	input := VenueInput{
 		Nombre:          "Estadio Test Service",
 		Direccion:       "Calle Test 123",
-		CapPlateaNorte: 20,
+		CapTribunaNorte: 20,
 	}
 	venue, err := CreateVenue(input)
 	if err != nil {
@@ -356,7 +356,7 @@ func TestUpdateVenue_Exitoso(t *testing.T) {
 	input := VenueInput{
 		Nombre:          "Venue Actualizado",
 		Direccion:       "Nueva Dirección 456",
-		CapPlateaNorte: 18,
+		CapTribunaNorte: 18,
 	}
 	updated, err := UpdateVenue(v.ID, input)
 	if err != nil {
@@ -368,7 +368,7 @@ func TestUpdateVenue_Exitoso(t *testing.T) {
 }
 
 func TestUpdateVenue_Inexistente(t *testing.T) {
-	input := VenueInput{Nombre: "X", Direccion: "X", CapPlateaNorte: 1}
+	input := VenueInput{Nombre: "X", Direccion: "X", CapTribunaNorte: 1}
 	_, err := UpdateVenue(99999, input)
 	if err == nil {
 		t.Error("se esperaba error para venue inexistente")
@@ -382,7 +382,7 @@ func TestUpdateVenue_ConEventos(t *testing.T) {
 		Lugar: "Somewhere", Precio: 10, CupoMaximo: 10, CupoDispon: 10,
 		VenueID: v.ID,
 	})
-	input := VenueInput{Nombre: "X", Direccion: "X", CapPlateaNorte: 1}
+	input := VenueInput{Nombre: "X", Direccion: "X", CapTribunaNorte: 1}
 	_, err := UpdateVenue(v.ID, input)
 	if err == nil {
 		t.Error("se esperaba error al actualizar venue con eventos asociados")
@@ -760,7 +760,7 @@ func TestCreateVenue_DBNula(t *testing.T) {
 	defer func() { dao.DB = saved }()
 
 	_, err := CreateVenue(VenueInput{
-		Nombre: "Test", Direccion: "Dir", CapPlateaNorte: 50,
+		Nombre: "Test", Direccion: "Dir", CapTribunaNorte: 50,
 	})
 	if err == nil {
 		t.Error("se esperaba error con DB nula")

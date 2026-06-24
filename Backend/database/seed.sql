@@ -11,12 +11,12 @@ DELETE FROM events;
 DELETE FROM venues;
 
 -- ESTABLECIMIENTOS (capacidades por sector)
-INSERT INTO venues (id, nombre, direccion, capacidad, cap_platea_norte, cap_platea_sur, cap_tribuna_este, cap_tribuna_oeste, cap_platea_preferencial, cap_campo, created_at) VALUES
-(1, 'Estadio Mario Alberto Kempes', 'Av. Carcano s/n, Cordoba',         300, 80, 80, 50, 50, 20, 20, NOW()),
-(2, 'Orfeo Superdomo',              'Av. Fuerza Aerea 5200, Cordoba',    200, 60, 60, 40, 40, 0, 0, NOW()),
-(3, 'Teatro Real de Cordoba',       'Av. Velez Sarsfield 365, Cordoba',   60, 30, 30, 0, 0, 0, 0, NOW()),
-(4, 'Quality Espacio',              'Av. Cruz Roja Argentina 200, Cordoba',40, 20, 20, 0, 0, 0, 0, NOW()),
-(5, 'Plaza de la Musica',           'Bv. Las Heras 80, Cordoba',          150, 40, 40, 30, 30, 0, 10, NOW());
+INSERT INTO venues (id, nombre, direccion, tipo, capacidad, cap_platea_norte, cap_platea_sur, cap_tribuna_este, cap_tribuna_oeste, cap_platea_preferencial, cap_campo, created_at) VALUES
+(1, 'Estadio Mario Alberto Kempes', 'Av. Carcano s/n, Cordoba',          'estadio',   300, 80, 80, 50, 50, 20, 20, NOW()),
+(2, 'Orfeo Superdomo',              'Av. Fuerza Aerea 5200, Cordoba',    'escenario', 200, 60, 60, 40, 40, 0, 0, NOW()),
+(3, 'Teatro Real de Cordoba',       'Av. Velez Sarsfield 365, Cordoba',  'escenario',  60, 30, 30, 0, 0, 0, 0, NOW()),
+(4, 'Quality Espacio',              'Av. Cruz Roja Argentina 200, Cordoba','escenario', 40, 20, 20, 0, 0, 0, 0, NOW()),
+(5, 'Plaza de la Musica',           'Bv. Las Heras 80, Cordoba',         'escenario', 150, 40, 40, 30, 30, 0, 10, NOW());
 
 -- EVENTOS
 INSERT INTO events (id, titulo, descripcion, categoria, fecha, lugar, precio, imagen, cupo_maximo, cupo_disponible, venue_id, created_at) VALUES
@@ -75,24 +75,28 @@ CREATE PROCEDURE IF NOT EXISTS generar_asientos_sectores()
 BEGIN
     DECLARE done INT DEFAULT FALSE;
     DECLARE v_event_id INT;
+    DECLARE v_tipo VARCHAR(50);
     DECLARE v_pn, v_ps, v_te, v_to2, v_pref, v_campo INT;
     DECLARE cur CURSOR FOR
-        SELECT e.id, v.cap_platea_norte, v.cap_platea_sur, v.cap_tribuna_este,
+        SELECT e.id, v.tipo, v.cap_platea_norte, v.cap_platea_sur, v.cap_tribuna_este,
                v.cap_tribuna_oeste, v.cap_platea_preferencial, v.cap_campo
         FROM events e JOIN venues v ON e.venue_id = v.id;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
     OPEN cur;
     read_loop: LOOP
-        FETCH cur INTO v_event_id, v_pn, v_ps, v_te, v_to2, v_pref, v_campo;
+        FETCH cur INTO v_event_id, v_tipo, v_pn, v_ps, v_te, v_to2, v_pref, v_campo;
         IF done THEN LEAVE read_loop; END IF;
 
-        CALL insertar_sector(v_event_id, 'Platea Norte', v_pn);
-        CALL insertar_sector(v_event_id, 'Platea Sur', v_ps);
-        CALL insertar_sector(v_event_id, 'Tribuna Este', v_te);
-        CALL insertar_sector(v_event_id, 'Tribuna Oeste', v_to2);
-        CALL insertar_sector(v_event_id, 'Preferencial', v_pref);
-        CALL insertar_sector(v_event_id, 'Campo', v_campo);
+        IF v_tipo = 'escenario' THEN
+            CALL insertar_sector(v_event_id, 'General', v_pn + v_ps + v_te + v_to2 + v_pref + v_campo);
+        ELSE
+            CALL insertar_sector(v_event_id, 'Tribuna Norte', v_pn);
+            CALL insertar_sector(v_event_id, 'Tribuna Sur', v_ps);
+            CALL insertar_sector(v_event_id, 'Tribuna Este', v_te);
+            CALL insertar_sector(v_event_id, 'Tribuna Oeste', v_to2);
+            CALL insertar_sector(v_event_id, 'Campo', v_campo);
+        END IF;
     END LOOP;
     CLOSE cur;
 END //

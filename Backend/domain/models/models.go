@@ -20,6 +20,7 @@ type Venue struct {
 	ID                    uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	Nombre                string    `gorm:"type:varchar(150);not null" json:"nombre"`
 	Direccion             string    `gorm:"type:varchar(255);not null" json:"direccion"`
+	Tipo                  string    `gorm:"type:varchar(50);not null;default:'estadio'" json:"tipo"`
 	Filas                 int       `gorm:"not null;default:0" json:"filas"`
 	ColumnasPorFila       int       `gorm:"not null;default:0" json:"columnas_por_fila"`
 	Capacidad             int       `gorm:"not null" json:"capacidad"`

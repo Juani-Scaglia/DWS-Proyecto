@@ -12,18 +12,18 @@ registerLocale("es", es);
 
 const EMPTY_EVENT = { titulo: "", descripcion: "", categoria: "Recitales", precio: "", venue_id: "", imagen: "" };
 const EMPTY_VENUE = {
-  nombre: "", direccion: "",
-  cap_platea_norte: "", cap_platea_sur: "",
+  nombre: "", direccion: "", tipo: "estadio",
+  capacidad: "",
+  cap_tribuna_norte: "", cap_tribuna_sur: "",
   cap_tribuna_este: "", cap_tribuna_oeste: "",
-  cap_platea_preferencial: "", cap_campo: "",
+  cap_campo: "",
 };
-const SECTORES = [
-  { key: "cap_platea_norte", label: "Platea Norte" },
-  { key: "cap_platea_sur", label: "Platea Sur" },
+const SECTORES_ESTADIO = [
+  { key: "cap_tribuna_norte", label: "Tribuna Norte" },
+  { key: "cap_tribuna_sur", label: "Tribuna Sur" },
   { key: "cap_tribuna_este", label: "Tribuna Este" },
   { key: "cap_tribuna_oeste", label: "Tribuna Oeste" },
-  { key: "cap_platea_preferencial", label: "Preferencial" },
-  { key: "cap_campo", label: "Campo / Foso" },
+  { key: "cap_campo", label: "Campo" },
 ];
 
 const todayStart = new Date();
@@ -143,14 +143,15 @@ export default function AdminPanel({ user }) {
 
   const submitVenue = async (e) => {
     e.preventDefault(); clearMsg(); setLoading(true);
+    const isEscenario = venueForm.tipo === "escenario";
     const payload = {
-      nombre: venueForm.nombre, direccion: venueForm.direccion,
-      cap_platea_norte: parseInt(venueForm.cap_platea_norte) || 0,
-      cap_platea_sur: parseInt(venueForm.cap_platea_sur) || 0,
-      cap_tribuna_este: parseInt(venueForm.cap_tribuna_este) || 0,
-      cap_tribuna_oeste: parseInt(venueForm.cap_tribuna_oeste) || 0,
-      cap_platea_preferencial: parseInt(venueForm.cap_platea_preferencial) || 0,
-      cap_campo: parseInt(venueForm.cap_campo) || 0,
+      nombre: venueForm.nombre, direccion: venueForm.direccion, tipo: venueForm.tipo,
+      capacidad: isEscenario ? (parseInt(venueForm.capacidad) || 0) : 0,
+      cap_tribuna_norte: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_norte) || 0),
+      cap_tribuna_sur: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_sur) || 0),
+      cap_tribuna_este: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_este) || 0),
+      cap_tribuna_oeste: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_oeste) || 0),
+      cap_campo: isEscenario ? 0 : (parseInt(venueForm.cap_campo) || 0),
     };
     try {
       if (editingVenue) {
@@ -169,12 +170,12 @@ export default function AdminPanel({ user }) {
   const startEditVenue = (v) => {
     setEditingVenue(v);
     setVenueForm({
-      nombre: v.nombre, direccion: v.direccion,
-      cap_platea_norte: String(v.cap_platea_norte || ""),
-      cap_platea_sur: String(v.cap_platea_sur || ""),
+      nombre: v.nombre, direccion: v.direccion, tipo: v.tipo || "estadio",
+      capacidad: String(v.capacidad || ""),
+      cap_tribuna_norte: String(v.cap_platea_norte || ""),
+      cap_tribuna_sur: String(v.cap_platea_sur || ""),
       cap_tribuna_este: String(v.cap_tribuna_este || ""),
       cap_tribuna_oeste: String(v.cap_tribuna_oeste || ""),
-      cap_platea_preferencial: String(v.cap_platea_preferencial || ""),
       cap_campo: String(v.cap_campo || ""),
     });
     setTab("venues");
@@ -329,18 +330,37 @@ export default function AdminPanel({ user }) {
                 </div>
               </div>
 
-              <p className="form-label" style={{ marginBottom: 4 }}>Capacidad por sector (deja en 0 los que no apliquen)</p>
-              <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                {SECTORES.map(({ key, label }) => (
-                  <div className="form-group" key={key}>
-                    <label className="form-label">{label}</label>
-                    <input className="form-input" name={key} type="number" min="0" placeholder="0" value={venueForm[key]} onChange={handleVF} />
-                  </div>
-                ))}
+              <div className="form-group">
+                <label className="form-label">Tipo de establecimiento</label>
+                <select className="form-input" name="tipo" value={venueForm.tipo} onChange={handleVF}>
+                  <option value="estadio">Estadio (sectores alrededor de cancha)</option>
+                  <option value="escenario">Escenario (sectores frente al escenario)</option>
+                </select>
               </div>
-              <p className="form-hint" style={{ fontSize: 14, fontWeight: 600 }}>
-                Capacidad total: {SECTORES.reduce((sum, { key }) => sum + (parseInt(venueForm[key]) || 0), 0)} asientos
-              </p>
+
+              {venueForm.tipo === "escenario" ? (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Capacidad total</label>
+                    <input className="form-input" name="capacidad" type="number" min="1" placeholder="Ej: 500" value={venueForm.capacidad} onChange={handleVF} required />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="form-label" style={{ marginBottom: 4 }}>Capacidad por tribuna</p>
+                  <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+                    {SECTORES_ESTADIO.map(({ key, label }) => (
+                      <div className="form-group" key={key}>
+                        <label className="form-label">{label}</label>
+                        <input className="form-input" name={key} type="number" min="0" placeholder="0" value={venueForm[key]} onChange={handleVF} />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="form-hint" style={{ fontSize: 14, fontWeight: 600 }}>
+                    Capacidad total: {SECTORES_ESTADIO.reduce((sum, { key }) => sum + (parseInt(venueForm[key]) || 0), 0)} asientos
+                  </p>
+                </>
+              )}
 
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <button type="submit" className="btn btn--primary btn--lg" disabled={loading}>
@@ -357,17 +377,24 @@ export default function AdminPanel({ user }) {
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
-                    <tr><th>#</th><th>Nombre</th><th>Direccion</th><th>Capacidad</th><th>Sectores</th><th></th></tr>
+                    <tr><th>#</th><th>Nombre</th><th>Tipo</th><th>Direccion</th><th>Capacidad</th><th>Sectores</th><th></th></tr>
                   </thead>
                   <tbody>
                     {venues.map((v) => (
                       <tr key={v.id}>
                         <td>{v.id}</td>
                         <td><strong>{v.nombre}</strong></td>
+                        <td>{v.tipo === "escenario" ? "Escenario" : "Estadio"}</td>
                         <td>{v.direccion}</td>
                         <td>{v.capacidad}</td>
                         <td style={{ fontSize: 12 }}>
-                          {SECTORES.filter(({ key }) => v[key] > 0).map(({ key, label }) => `${label}: ${v[key]}`).join(" | ")}
+                          {v.tipo === "escenario" ? `General: ${v.capacidad}` :
+                            SECTORES_ESTADIO.map(({ key, label }) => {
+                              const dbKey = key.replace("cap_tribuna_norte", "cap_platea_norte").replace("cap_tribuna_sur", "cap_platea_sur");
+                              const val = v[dbKey] || v[key] || 0;
+                              return val > 0 ? `${label}: ${val}` : null;
+                            }).filter(Boolean).join(" | ")
+                          }
                         </td>
                         <td style={{ display: "flex", gap: 6 }}>
                           <button className="btn btn--secondary btn--sm" onClick={() => startEditVenue(v)}>Editar</button>

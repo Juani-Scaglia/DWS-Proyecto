@@ -75,7 +75,7 @@ export default function EventDetail({ user }) {
 
       <h2>Seleccioná tus asientos</h2>
       {seats.length > 0 ? (
-        <SeatMap seats={seats} maxSelectable={10} onSelectionChange={setSelectedSeats} />
+        <SeatMap seats={seats} maxSelectable={10} onSelectionChange={setSelectedSeats} venueType={event.venue?.tipo || "estadio"} eventCategory={event.categoria} />
       ) : (
         <p>No hay asientos disponibles.</p>
       )}
