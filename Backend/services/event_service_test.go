@@ -382,10 +382,13 @@ func TestUpdateVenue_ConEventos(t *testing.T) {
 		Lugar: "Somewhere", Precio: 10, CupoMaximo: 10, CupoDispon: 10,
 		VenueID: v.ID,
 	})
-	input := VenueInput{Nombre: "X", Direccion: "X", CapTribunaNorte: 1}
-	_, err := UpdateVenue(v.ID, input)
-	if err == nil {
-		t.Error("se esperaba error al actualizar venue con eventos asociados")
+	input := VenueInput{Nombre: "Actualizado", Direccion: "Nueva Dir", CapTribunaNorte: 1}
+	updated, err := UpdateVenue(v.ID, input)
+	if err != nil {
+		t.Errorf("no se esperaba error: %v", err)
+	}
+	if updated.Nombre != "Actualizado" {
+		t.Errorf("nombre no actualizado: %s", updated.Nombre)
 	}
 }
 

@@ -84,11 +84,6 @@ func UpdateVenue(id uint, input VenueInput) (*domain.Venue, error) {
 	if _, err := dao.GetVenueByID(id); err != nil {
 		return nil, err
 	}
-	var count int64
-	dao.DB.Model(&domain.Event{}).Where("venue_id = ?", id).Count(&count)
-	if count > 0 {
-		return nil, errors.New("no se puede modificar un establecimiento que tiene eventos asociados")
-	}
 	total := input.totalCapacidad()
 	if total <= 0 {
 		return nil, errors.New("la capacidad total debe ser mayor a 0")
@@ -113,7 +108,28 @@ func UpdateVenue(id uint, input VenueInput) (*domain.Venue, error) {
 		return nil, err
 	}
 	venue, err := dao.GetVenueByID(id)
-	return &venue, err
+	if err != nil {
+		return nil, err
+	}
+
+	var events []domain.Event
+	dao.DB.Where("venue_id = ?", id).Find(&events)
+	sectores := VenueSectores(venue)
+	for _, ev := range events {
+		tx := dao.DB.Begin()
+		tx.Where("event_id = ?", ev.ID).Delete(&domain.Seat{})
+		if err := dao.CreateSeatsForEvent(tx, ev.ID, sectores); err != nil {
+			tx.Rollback()
+			continue
+		}
+		tx.Model(&domain.Event{}).Where("id = ?", ev.ID).Updates(map[string]interface{}{
+			"cupo_maximo":     total,
+			"cupo_disponible": total,
+		})
+		tx.Commit()
+	}
+
+	return &venue, nil
 }
 
 func DeleteVenue(id uint) error {

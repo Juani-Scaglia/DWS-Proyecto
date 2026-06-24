@@ -14,13 +14,13 @@ const EMPTY_EVENT = { titulo: "", descripcion: "", categoria: "Recitales", preci
 const EMPTY_VENUE = {
   nombre: "", direccion: "", tipo: "estadio",
   capacidad: "",
-  cap_tribuna_norte: "", cap_tribuna_sur: "",
+  cap_platea_norte: "", cap_platea_sur: "",
   cap_tribuna_este: "", cap_tribuna_oeste: "",
   cap_campo: "",
 };
 const SECTORES_ESTADIO = [
-  { key: "cap_tribuna_norte", label: "Tribuna Norte" },
-  { key: "cap_tribuna_sur", label: "Tribuna Sur" },
+  { key: "cap_platea_norte", label: "Tribuna Norte" },
+  { key: "cap_platea_sur", label: "Tribuna Sur" },
   { key: "cap_tribuna_este", label: "Tribuna Este" },
   { key: "cap_tribuna_oeste", label: "Tribuna Oeste" },
   { key: "cap_campo", label: "Campo" },
@@ -147,8 +147,8 @@ export default function AdminPanel({ user }) {
     const payload = {
       nombre: venueForm.nombre, direccion: venueForm.direccion, tipo: venueForm.tipo,
       capacidad: isEscenario ? (parseInt(venueForm.capacidad) || 0) : 0,
-      cap_tribuna_norte: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_norte) || 0),
-      cap_tribuna_sur: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_sur) || 0),
+      cap_tribuna_norte: isEscenario ? 0 : (parseInt(venueForm.cap_platea_norte) || 0),
+      cap_tribuna_sur: isEscenario ? 0 : (parseInt(venueForm.cap_platea_sur) || 0),
       cap_tribuna_este: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_este) || 0),
       cap_tribuna_oeste: isEscenario ? 0 : (parseInt(venueForm.cap_tribuna_oeste) || 0),
       cap_campo: isEscenario ? 0 : (parseInt(venueForm.cap_campo) || 0),
@@ -172,8 +172,8 @@ export default function AdminPanel({ user }) {
     setVenueForm({
       nombre: v.nombre, direccion: v.direccion, tipo: v.tipo || "estadio",
       capacidad: String(v.capacidad || ""),
-      cap_tribuna_norte: String(v.cap_platea_norte || ""),
-      cap_tribuna_sur: String(v.cap_platea_sur || ""),
+      cap_platea_norte: String(v.cap_platea_norte || ""),
+      cap_platea_sur: String(v.cap_platea_sur || ""),
       cap_tribuna_este: String(v.cap_tribuna_este || ""),
       cap_tribuna_oeste: String(v.cap_tribuna_oeste || ""),
       cap_campo: String(v.cap_campo || ""),
@@ -258,9 +258,14 @@ export default function AdminPanel({ user }) {
                   <label className="form-label">Establecimiento *</label>
                   <select className="form-input" name="venue_id" value={eventForm.venue_id} onChange={handleEF} required>
                     <option value="">— Seleccioná —</option>
-                    {venues.map((v) => (
-                      <option key={v.id} value={v.id}>{v.nombre} ({v.capacidad} asientos)</option>
-                    ))}
+                    {venues
+                      .filter((v) => {
+                        if (eventForm.categoria === "Deportes") return (v.tipo || "estadio") === "estadio";
+                        return true;
+                      })
+                      .map((v) => (
+                        <option key={v.id} value={v.id}>{v.nombre} ({v.capacidad} asientos)</option>
+                      ))}
                   </select>
                   {selectedVenue && (
                     <p className="form-hint">{selectedVenue.direccion} - {selectedVenue.capacidad} asientos</p>
@@ -390,8 +395,7 @@ export default function AdminPanel({ user }) {
                         <td style={{ fontSize: 12 }}>
                           {v.tipo === "escenario" ? `General: ${v.capacidad}` :
                             SECTORES_ESTADIO.map(({ key, label }) => {
-                              const dbKey = key.replace("cap_tribuna_norte", "cap_platea_norte").replace("cap_tribuna_sur", "cap_platea_sur");
-                              const val = v[dbKey] || v[key] || 0;
+                              const val = v[key] || 0;
                               return val > 0 ? `${label}: ${val}` : null;
                             }).filter(Boolean).join(" | ")
                           }
