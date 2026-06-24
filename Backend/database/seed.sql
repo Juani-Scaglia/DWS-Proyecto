@@ -1,6 +1,6 @@
 -- ============================================================
 -- SEED DATA - Establecimientos, Eventos y Asientos de prueba
--- Ejecutar: mysql -u root -p --default-character-set=utf8mb4 ticket_system < database/seed.sql
+-- Ejecutar: mysql -u root -p --default-character-set=utf8mb4 dws_proyecto < database/seed.sql
 -- ============================================================
 
 SET NAMES utf8mb4;
