@@ -3,22 +3,20 @@ package main
 import (
 	"backend/controllers"
 	"backend/dao"
-	"backend/middlewares" // <--- Descomentamos este import
+	"backend/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
 const routeEventByID = "/events/:id"
+const routeVenueByID = "/venues/:id"
 
 func main() {
-	// 1. Inicializar la Base de Datos (GORM)
 	dao.InitDB()
 
-	// 2. Crear el servidor/enrutador de Gin
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
-	// 3. Configurar Middleware de CORS
 	r.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 		if origin == "" {
@@ -36,18 +34,18 @@ func main() {
 		c.Next()
 	})
 
-	// ==========================================
-	// 4. DEFINICIÓN DE ENDPOINTS
-	// ==========================================
+	r.Static("/uploads", "./uploads")
+
 	api := r.Group("/api")
 	{
-		// --- RUTAS PÚBLICAS (Eventos y Auth) ---
-		api.GET("/events", controllers.GetEvents)        
-		api.GET(routeEventByID, controllers.GetEventByID) 
+		api.GET("/events", controllers.GetEvents)
+		api.GET(routeEventByID, controllers.GetEventByID)
+		api.GET("/events/:id/seats", controllers.GetEventSeats)
+		api.GET("/venues", controllers.GetVenues)
+		api.GET(routeVenueByID, controllers.GetVenueByID)
 		api.POST("/auth/register", controllers.RegisterUser)
 		api.POST("/auth/login", controllers.LoginUser)
 
-		// --- RUTAS PROTEGIDAS (Requieren Token JWT) ---
 		protected := api.Group("/")
 		protected.Use(middlewares.AuthMiddleware())
 		{
@@ -57,17 +55,20 @@ func main() {
 			protected.POST("/tickets/:id/transfer", controllers.TransferTicket)
 		}
 
-		// --- RUTAS ADMIN (Requieren Token JWT + rol admin) ---
 		admin := api.Group("/admin")
 		admin.Use(middlewares.AuthMiddleware())
 		admin.Use(middlewares.AdminMiddleware())
 		{
+			admin.POST("/upload", controllers.UploadImage)
 			admin.POST("/events", controllers.CreateEventAdmin)
 			admin.PUT(routeEventByID, controllers.UpdateEventAdmin)
 			admin.DELETE(routeEventByID, controllers.DeleteEventAdmin)
+			admin.POST("/venues", controllers.CreateVenueAdmin)
+			admin.PUT(routeVenueByID, controllers.UpdateVenueAdmin)
+			admin.DELETE(routeVenueByID, controllers.DeleteVenueAdmin)
+			admin.GET("/events/:id/report", controllers.GetOccupationReportAdmin)
 		}
 	}
 
-	// 5. Correr el servidor en el puerto 8080
 	r.Run(":8080")
 }

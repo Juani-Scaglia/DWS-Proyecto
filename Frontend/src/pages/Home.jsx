@@ -1,52 +1,59 @@
 import { useEffect, useState } from "react";
-
-import EventCard from "../components/EventCard";
 import { getEvents } from "../services/eventService";
+import EventCard from "../components/EventCard";
 
-function Home() {
+const CATEGORIAS = [
+  { value: "", label: "Todos" },
+  { value: "Recitales", label: "Recitales" },
+  { value: "Teatro", label: "Teatro" },
+  { value: "Deportes", label: "Deportes" },
+  { value: "Cine", label: "Cine" },
+  { value: "Otra", label: "Otra" },
+];
+
+export default function Home() {
   const [events, setEvents] = useState([]);
-
-  const loadEvents = async () => {
-    try {
-      const data = await getEvents();
-      setEvents(data);
-    } catch (error) {
-      console.error("Error al obtener eventos:", error);
-    }
-  };
-
-  /*useEffect(() => {
-    loadEvents();
-  }, []);*/
+  const [category, setCategory] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setEvents([
-      {
-        id: 1,
-        titulo: "Cosquín Rock",
-        categoria: "Recitales",
-        precio: 5000,
-      },
-      {
-        id: 2,
-        titulo: "Coldplay",
-        categoria: "Recitales",
-        precio: 10000,
-      },
-    ]);
-  }, []);
+    setLoading(true);
+    getEvents(category)
+      .then((res) => { setEvents(res.data); setError(""); })
+      .catch(() => setError("No se pudieron cargar los eventos."))
+      .finally(() => setLoading(false));
+  }, [category]);
 
   return (
-    <div>
+    <div className="container" style={{ paddingTop: 32, paddingBottom: 64 }}>
       <h1>Catálogo de Eventos</h1>
 
-      {events.length === 0 ? (
-        <p>No hay eventos disponibles.</p>
+      <div className="filters">
+        {CATEGORIAS.map(({ value, label }) => (
+          <button
+            key={value}
+            className={`filter-btn${category === value ? " filter-btn--active" : ""}`}
+            onClick={() => setCategory(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {error && <div className="alert alert--error">{error}</div>}
+
+      {loading ? (
+        <p>Cargando eventos...</p>
+      ) : events.length === 0 ? (
+        <p>No hay eventos en esta categoría.</p>
       ) : (
-        events.map((event) => <EventCard key={event.id} event={event} />)
+        <div className="events-grid">
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
       )}
     </div>
   );
 }
-
-export default Home;

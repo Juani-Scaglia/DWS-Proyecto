@@ -11,7 +11,8 @@ import (
 )
 
 type PurchaseInput struct {
-	EventID uint `json:"event_id" binding:"required"`
+	EventID uint   `json:"event_id" binding:"required"`
+	SeatIDs []uint `json:"seat_ids" binding:"required"`
 }
 
 type TransferInput struct {
@@ -27,17 +28,17 @@ func PurchaseTicket(c *gin.Context) {
 		return
 	}
 
-	ticket, err := services.PurchaseTicket(userID, input.EventID)
+	tickets, err := services.PurchaseTickets(userID, input.EventID, input.SeatIDs)
 	if err != nil {
-		if err.Error() == "sin cupo disponible" {
+		if err.Error() == "sin cupo disponible para la cantidad solicitada" {
 			utils.ErrorResponse(c, http.StatusConflict, err.Error())
 			return
 		}
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusCreated, ticket)
+	utils.SuccessResponse(c, http.StatusCreated, tickets)
 }
 
 func GetMyTickets(c *gin.Context) {

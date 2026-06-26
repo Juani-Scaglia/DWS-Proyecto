@@ -38,7 +38,12 @@ func Register(input RegisterInput) (*domain.User, error) {
 	}
 	var existing domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
-		return nil, errors.New("el email ya está registrado")
+		return nil, errors.New("el email ya esta registrado")
+	}
+
+	var existingDNI domain.User
+	if err := dao.DB.Where("dni = ?", input.DNI).First(&existingDNI).Error; err == nil {
+		return nil, errors.New("el DNI ya está registrado")
 	}
 
 	user := domain.User{
@@ -64,13 +69,13 @@ func Login(input LoginInput) (string, *domain.User, error) {
 	var user domain.User
 	if err := dao.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", nil, errors.New("credenciales inválidas")
+			return "", nil, errors.New("credenciales invalidas")
 		}
 		return "", nil, err
 	}
 
 	if user.Password != hashPassword(input.Password) {
-		return "", nil, errors.New("credenciales inválidas")
+		return "", nil, errors.New("credenciales invalidas")
 	}
 
 	token, err := generateJWT(user)

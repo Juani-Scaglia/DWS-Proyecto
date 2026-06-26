@@ -8,11 +8,16 @@ import (
 
 func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rol, _ := c.Get("rol")
-		if rol != "admin" {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "acceso restringido a administradores"})
+		rol, exists := c.Get("rol")
+		
+		// Valida tanto si viene en minúscula "admin" como "Administrador" con mayúscula
+		if !exists || (rol != "admin" && rol != "Administrador") {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": "Acceso denegado: se requieren permisos de Administrador",
+			})
 			return
 		}
+		
 		c.Next()
 	}
 }

@@ -21,3 +21,6 @@ export const cancelTicket = async (ticketId) => {
 export const transferTicket = async (ticketId, dni) => {
   return axios.post(`${API_URL}/tickets/${ticketId}/transfer`, { dni }, { headers: authHeader() });
 };
+
+export const getEventReport = (eventId) =>
+  axios.get(`${API_URL}/admin/events/${eventId}/report`, { headers: authHeader() });
